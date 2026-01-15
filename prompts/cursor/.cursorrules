@@ -1,22 +1,14 @@
 # Bruno API Client - Cursor AI Rules
 
-## Project Overview
-Bruno is an innovative API client that revolutionizes API testing and development by storing collections directly in the filesystem using a plain text markup language called "Bru". It's designed as a Postman alternative with Git-first collaboration and offline-only operation.
+## What is Bruno?
+Bruno is an innovative API client that stores API collections directly in your filesystem using a plain text markup language called "Bru". It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
 
-## Core Architecture
-- **Electron App**: Desktop application (packages/bruno-app + bruno-electron)
-- **CLI Tool**: Command-line interface (packages/bruno-cli) 
-- **Language Parser**: Bru language parser and converter (packages/bruno-lang)
-- **File Storage**: Filesystem-based storage system (packages/bruno-filestore)
-- **Request Engine**: HTTP/GraphQL/gRPC/WebSocket request handling (packages/bruno-requests)
-- **Schema Validation**: Request/response validation (packages/bruno-schema)
-
-## Key Technologies
-- **Frontend**: React, Redux Toolkit, Styled Components, CodeMirror
-- **Backend**: Electron, Node.js, Axios
-- **Build**: Rsbuild (modern Webpack alternative)
-- **Testing**: Jest, Testing Library
-- **Languages**: JavaScript, TypeScript (limited), HTML, CSS/SASS
+## Core Philosophy
+- **Offline-First**: No cloud sync, everything stored locally
+- **Git-Collaborative**: Collections designed for version control
+- **Plain Text**: Human-readable .bru files for easy collaboration
+- **File-Based**: No databases, everything in the filesystem
+- **Developer-Friendly**: Works with your existing workflow
 
 ## Bru File Format (.bru)
 Bruno uses a custom plain-text markup language for API requests:
@@ -82,43 +74,106 @@ vars:post-response {
 vars {
   baseUrl: https://api.example.com
   apiVersion: v1
+  timeout: 5000
 }
 
 vars:secret [
   apiKey,
-  clientSecret
+  clientSecret,
+  authToken
 ]
 ```
 
-## Key Packages & Responsibilities
-- `bruno-app`: React frontend application
-- `bruno-electron`: Electron main process and IPC handlers
-- `bruno-cli`: Command-line interface for running collections
-- `bruno-lang`: Bru language parser (uses Ohm.js grammar)
-- `bruno-filestore`: File system operations and format conversion
-- `bruno-requests`: HTTP/GraphQL/gRPC/WebSocket request execution
-- `bruno-schema`: Yup-based validation schemas
-- `bruno-js`: Runtime environment for pre/post scripts
-- `bruno-common`: Shared utilities and constants
+## JavaScript API Reference
 
-## Development Guidelines
-1. **File Format**: Always use .bru format for requests, never JSON
-2. **Git Integration**: Collections are designed for version control
-3. **Offline-First**: No cloud sync, everything stored locally
-4. **Modular Architecture**: Each package has specific responsibilities
-5. **Plain Text**: Human-readable format for easy collaboration
+### Request Object (req)
+Available in pre-request and test scripts:
+- `req.getUrl()` - Get the current request URL
+- `req.setUrl(url)` - Set the request URL
+- `req.getMethod()` - Get HTTP method (GET, POST, etc.)
+- `req.setMethod(method)` - Set HTTP method
+- `req.getHeader(name)` - Get a specific header
+- `req.getHeaders()` - Get all headers
+- `req.setHeader(name, value)` - Set a header
+- `req.setHeaders(headers)` - Set multiple headers
+- `req.getBody()` - Get request body
+- `req.setBody(body)` - Set request body
+- `req.setTimeout(ms)` - Set request timeout
+- `req.setMaxRedirects(count)` - Set max redirects
 
-## Common Patterns
-- Use `bru.setVar()` and `bru.getVar()` for variable management
-- Environment variables with `{{variableName}}` syntax
-- Pre-request and post-response scripts for dynamic behavior
-- Chai.js assertions in tests
-- File-based organization mirrors folder structure
+### Response Object (res)
+Available in post-response scripts and tests:
+- `res.status` - HTTP status code
+- `res.statusText` - HTTP status text
+- `res.headers` - Response headers object
+- `res.body` - Parsed response body
+- `res.responseTime` - Response time in milliseconds
+- `res.getHeader(name)` - Get specific response header
+- `res.getStatus()` - Get status code
+- `res.getBody()` - Get response body
 
-## When Working on Bruno:
-- Understand the .bru file format is central to everything
-- Respect the offline-first, Git-collaborative philosophy
-- Consider cross-platform compatibility (Windows, macOS, Linux)
-- Maintain backward compatibility with existing collections
-- Follow the modular package architecture
-- Test with real API collections, not just unit tests
+### Bruno Runtime (bru)
+Core scripting API:
+- `bru.setVar(key, value)` - Set runtime variable
+- `bru.getVar(key)` - Get runtime variable
+- `bru.setEnvVar(key, value)` - Set environment variable
+- `bru.getEnvVar(key)` - Get environment variable
+- `bru.getProcessEnv(key)` - Get process environment variable
+- `bru.setNextRequest(requestName)` - Chain to next request
+- `bru.sleep(ms)` - Pause execution
+- `bru.cwd()` - Get current working directory
+
+### Dynamic Variables
+Use in request URLs, headers, or body:
+- `{{$guid}}` - Random GUID
+- `{{$timestamp}}` - Current timestamp
+- `{{$randomInt}}` - Random integer
+- `{{$randomEmail}}` - Random email
+- `{{$randomFirstName}}` - Random first name
+- `{{$randomLastName}}` - Random last name
+- `{{$randomFullName}}` - Random full name
+- `{{$randomPhoneNumber}}` - Random phone number
+- `{{$randomCity}}` - Random city name
+- `{{$randomCountry}}` - Random country name
+
+### Test Assertions (Chai.js)
+```javascript
+test("Status is 200", function() {
+  expect(res.status).to.equal(200);
+});
+
+test("Response has data", function() {
+  expect(res.body).to.have.property("data");
+  expect(res.body.data).to.be.an("array");
+});
+
+test("Response time is acceptable", function() {
+  expect(res.responseTime).to.be.below(2000);
+});
+```
+
+### Cookie Management
+```javascript
+const jar = bru.cookies.jar();
+jar.setCookie(url, "sessionId", "abc123");
+jar.getCookie(url, "sessionId");
+jar.deleteCookie(url, "sessionId");
+```
+
+## Best Practices
+1. **Use .bru format** - Always use .bru files, never JSON for API definitions
+2. **Environment variables** - Use `{{variableName}}` for values that change across environments
+3. **Secret management** - Store sensitive data in `vars:secret` blocks
+4. **Comprehensive tests** - Write tests for status codes, response structure, and data validation
+5. **Request chaining** - Use `bru.setNextRequest()` for complex workflows
+6. **Error handling** - Add validation in pre-request scripts
+7. **Git-friendly** - Organize collections logically for version control
+8. **Documentation** - Use meaningful names and add comments in scripts
+
+## Common Use Cases
+- API development and testing
+- Integration testing for microservices
+- Automated testing in CI/CD pipelines (using Bruno CLI)
+- API documentation with examples
+- Team collaboration on API collections
+- Converting from Postman/Insomnia collections

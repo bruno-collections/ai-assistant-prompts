@@ -10,18 +10,28 @@
   "customCommands": [
     {
       "name": "bruno-request",
-      "prompt": "Create a new Bruno .bru file for an API request. Use the proper Bru syntax with meta, request method, headers, body, and tests sections. Include environment variables where appropriate.",
+      "prompt": "Create a new Bruno .bru file for an API request. Use proper Bru syntax with meta block (name, type, seq), request method block, headers, body, and tests sections. Include environment variables using {{variableName}} syntax where appropriate. Add pre-request and post-response scripts if needed.",
       "description": "Generate a Bruno API request file"
     },
     {
       "name": "bruno-environment",
-      "prompt": "Create a Bruno environment file (.bru) with variables and secrets. Use the vars block for regular variables and vars:secret block for sensitive data.",
+      "prompt": "Create a Bruno environment file (.bru) with variables and secrets. Use the vars block for regular variables (baseUrl, apiVersion, etc.) and vars:secret block for sensitive data (apiKey, authToken, etc.).",
       "description": "Generate a Bruno environment file"
     },
     {
       "name": "bruno-test",
-      "prompt": "Add comprehensive tests to a Bruno .bru file using Chai.js assertions. Include status code, response time, and data validation tests.",
+      "prompt": "Add comprehensive tests to a Bruno .bru file using Chai.js assertions. Include tests for: status code validation, response structure validation, data type checking, response time, and business logic validation. Use expect() assertions.",
       "description": "Add tests to Bruno request"
+    },
+    {
+      "name": "bruno-script",
+      "prompt": "Add pre-request or post-response scripts to a Bruno .bru file. Use bru.setVar() and bru.getVar() for runtime variables, bru.setEnvVar() for environment variables, and bru.setNextRequest() for request chaining. Include error handling.",
+      "description": "Add scripts to Bruno request"
+    },
+    {
+      "name": "bruno-chain",
+      "prompt": "Create a request chain workflow in Bruno. Use post-response scripts to extract data (like tokens or IDs) and use bru.setNextRequest() to chain to the next request. Store extracted data in runtime variables.",
+      "description": "Create request chaining workflow"
     }
   ],
   "contextProviders": [
@@ -32,7 +42,7 @@
       }
     }
   ],
-  "systemMessage": "You are an expert in Bruno API Client development. Bruno uses a plain text markup language called 'Bru' for API requests stored directly in the filesystem. Always prioritize the .bru file format, Git-collaborative workflow, and offline-first philosophy. Key concepts:\n\n- Use .bru files for API requests, never JSON\n- Environment variables with {{variableName}} syntax\n- Pre-request and post-response JavaScript scripts\n- Chai.js for testing\n- File-based organization with folders\n- Git-friendly plain text format\n\nWhen helping with Bruno:\n1. Always suggest .bru format for API definitions\n2. Use environment variables for reusable values\n3. Include proper error handling in scripts\n4. Write meaningful tests for responses\n5. Organize requests logically in folders\n6. Consider the offline-first, Git-collaborative approach",
+  "systemMessage": "You are an expert in Bruno API Client. Bruno stores API collections in your filesystem using plain text .bru files - perfect for Git version control. Key concepts:\n\n- .bru file format for all API requests (never JSON)\n- Environment variables: {{variableName}}\n- JavaScript scripting: pre-request and post-response\n- Testing: Chai.js assertions in tests block\n- Dynamic variables: {{$randomEmail}}, {{$guid}}, etc.\n- Request chaining: bru.setNextRequest()\n- Cookie management: bru.cookies.jar()\n- Secret management: vars:secret blocks\n\nJavaScript API:\n- req: getUrl(), setUrl(), getMethod(), setMethod(), getHeader(), setHeader(), getBody(), setBody(), setTimeout()\n- res: status, body, headers, responseTime\n- bru: setVar(), getVar(), setEnvVar(), getEnvVar(), setNextRequest(), interpolate()\n\nWhen helping:\n1. Use .bru format for API definitions\n2. Store secrets in vars:secret blocks\n3. Use environment variables for changing values\n4. Write comprehensive tests\n5. Leverage dynamic variables for test data\n6. Chain requests for workflows\n7. Keep collections Git-friendly",
   "slashCommands": [
     {
       "name": "bruno",
