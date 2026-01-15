@@ -1,0 +1,92 @@
+meta {
+  name: Get User Profile
+  type: http
+  seq: 1
+  tags: [users, get-request]
+}
+
+get {
+  url: {{baseUrl}}/api/{{apiVersion}}/users/{{userId}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  accept: application/json
+  user-agent: Bruno/1.0
+  x-request-id: {{requestId}}
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+script:pre-request {
+  // Generate unique request ID
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  bru.setVar("requestId", requestId);
+  
+  // Validate required variables
+  if (!bru.getVar("userId")) {
+    throw new Error("userId is required for this request");
+  }
+  
+  // Log request details if in debug mode
+  if (bru.getVar("debug") === "true") {
+    console.log(`Fetching user profile for ID: ${bru.getVar("userId")}`);
+  }
+}
+
+script:post-response {
+  // Extract user data for subsequent requests
+  if (res.status === 200 && res.body) {
+    bru.setVar("userName", res.body.name);
+    bru.setVar("userEmail", res.body.email);
+    bru.setVar("userRole", res.body.role);
+    
+    // Log success if in debug mode
+    if (bru.getVar("debug") === "true") {
+      console.log(`Successfully retrieved user: ${res.body.name}`);
+    }
+  }
+  
+  // Handle rate limiting
+  if (res.status === 429) {
+    const retryAfter = res.headers["retry-after"];
+    console.warn(`Rate limited. Retry after: ${retryAfter} seconds`);
+  }
+}
+
+tests {
+  test("User profile retrieved successfully", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body).to.be.an("object");
+  });
+  
+  test("Response contains required user fields", function() {
+    expect(res.body).to.have.property("id");
+    expect(res.body).to.have.property("name");
+    expect(res.body).to.have.property("email");
+    expect(res.body.id).to.be.a("number");
+    expect(res.body.name).to.be.a("string");
+    expect(res.body.email).to.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+  });
+  
+  test("Response time is acceptable", function() {
+    expect(res.responseTime).to.be.below(parseInt(bru.getVar("timeout")));
+  });
+  
+  test("Response headers are correct", function() {
+    expect(res.headers["content-type"]).to.include("application/json");
+    expect(res.headers).to.have.property("x-request-id");
+  });
+}
+
+vars:pre-request {
+  userId: 123
+}
+
+vars:post-response {
+  lastUserFetch: {{res.headers.date}}
+  userProfileData: {{res.body}}
+}

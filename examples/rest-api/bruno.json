@@ -1,0 +1,22 @@
+{
+  "version": "1",
+  "name": "REST API Example Collection",
+  "type": "collection",
+  "proxy": {
+    "enabled": false
+  },
+  "scripts": {
+    "moduleWhitelist": ["crypto", "buffer", "form-data"],
+    "filesystemAccess": {
+      "allow": true
+    }
+  },
+  "clientCertificates": {
+    "enabled": false,
+    "certs": []
+  },
+  "presets": {
+    "requestType": "http",
+    "requestUrl": "https://api.example.com"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "models": [
+    {
+      "title": "GPT-4",
+      "provider": "openai",
+      "model": "gpt-4",
+      "apiKey": "[API_KEY]"
+    }
+  ],
+  "customCommands": [
+    {
+      "name": "bruno-request",
+      "prompt": "Create a new Bruno .bru file for an API request. Use the proper Bru syntax with meta, request method, headers, body, and tests sections. Include environment variables where appropriate.",
+      "description": "Generate a Bruno API request file"
+    },
+    {
+      "name": "bruno-environment",
+      "prompt": "Create a Bruno environment file (.bru) with variables and secrets. Use the vars block for regular variables and vars:secret block for sensitive data.",
+      "description": "Generate a Bruno environment file"
+    },
+    {
+      "name": "bruno-test",
+      "prompt": "Add comprehensive tests to a Bruno .bru file using Chai.js assertions. Include status code, response time, and data validation tests.",
+      "description": "Add tests to Bruno request"
+    }
+  ],
+  "contextProviders": [
+    {
+      "name": "bruno-context",
+      "params": {
+        "path": "bruno-ai-context.md"
+      }
+    }
+  ],
+  "systemMessage": "You are an expert in Bruno API Client development. Bruno uses a plain text markup language called 'Bru' for API requests stored directly in the filesystem. Always prioritize the .bru file format, Git-collaborative workflow, and offline-first philosophy. Key concepts:\n\n- Use .bru files for API requests, never JSON\n- Environment variables with {{variableName}} syntax\n- Pre-request and post-response JavaScript scripts\n- Chai.js for testing\n- File-based organization with folders\n- Git-friendly plain text format\n\nWhen helping with Bruno:\n1. Always suggest .bru format for API definitions\n2. Use environment variables for reusable values\n3. Include proper error handling in scripts\n4. Write meaningful tests for responses\n5. Organize requests logically in folders\n6. Consider the offline-first, Git-collaborative approach",
+  "slashCommands": [
+    {
+      "name": "bruno",
+      "description": "Get help with Bruno API Client development"
+    }
+  ]
+}

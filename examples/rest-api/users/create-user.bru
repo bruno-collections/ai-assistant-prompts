@@ -1,0 +1,137 @@
+meta {
+  name: Create New User
+  type: http
+  seq: 2
+  tags: [users, post-request, create]
+}
+
+post {
+  url: {{baseUrl}}/api/{{apiVersion}}/users
+  body: json
+  auth: bearer
+}
+
+headers {
+  content-type: application/json
+  accept: application/json
+  x-request-id: {{requestId}}
+}
+
+auth:bearer {
+  token: {{apiKey}}
+}
+
+body:json {
+  {
+    "name": "{{newUserName}}",
+    "email": "{{newUserEmail}}",
+    "role": "{{newUserRole}}",
+    "profile": {
+      "firstName": "{{firstName}}",
+      "lastName": "{{lastName}}",
+      "department": "{{department}}"
+    },
+    "preferences": {
+      "notifications": true,
+      "theme": "light"
+    }
+  }
+}
+
+script:pre-request {
+  // Generate unique request ID
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  bru.setVar("requestId", requestId);
+  
+  // Validate required fields
+  const requiredFields = ["newUserName", "newUserEmail", "newUserRole"];
+  for (const field of requiredFields) {
+    if (!bru.getVar(field)) {
+      throw new Error(`${field} is required for user creation`);
+    }
+  }
+  
+  // Validate email format
+  const email = bru.getVar("newUserEmail");
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new Error("Invalid email format");
+  }
+  
+  // Set default values if not provided
+  if (!bru.getVar("newUserRole")) {
+    bru.setVar("newUserRole", "user");
+  }
+  
+  if (bru.getVar("debug") === "true") {
+    console.log(`Creating user: ${bru.getVar("newUserName")} (${email})`);
+  }
+}
+
+script:post-response {
+  // Store created user information
+  if (res.status === 201 && res.body) {
+    bru.setVar("createdUserId", res.body.id);
+    bru.setVar("createdUserName", res.body.name);
+    bru.setVar("userCreationTimestamp", res.body.createdAt);
+    
+    if (bru.getVar("debug") === "true") {
+      console.log(`User created successfully with ID: ${res.body.id}`);
+    }
+  }
+  
+  // Handle validation errors
+  if (res.status === 400 && res.body && res.body.errors) {
+    console.error("Validation errors:", res.body.errors);
+  }
+  
+  // Handle duplicate email error
+  if (res.status === 409) {
+    console.error("User with this email already exists");
+  }
+}
+
+tests {
+  test("User created successfully", function() {
+    expect(res.status).to.equal(201);
+    expect(res.body).to.be.an("object");
+  });
+  
+  test("Response contains created user data", function() {
+    expect(res.body).to.have.property("id");
+    expect(res.body).to.have.property("name");
+    expect(res.body).to.have.property("email");
+    expect(res.body).to.have.property("createdAt");
+    expect(res.body.name).to.equal(bru.getVar("newUserName"));
+    expect(res.body.email).to.equal(bru.getVar("newUserEmail"));
+  });
+  
+  test("User ID is valid", function() {
+    expect(res.body.id).to.be.a("number");
+    expect(res.body.id).to.be.greaterThan(0);
+  });
+  
+  test("Response time is acceptable", function() {
+    expect(res.responseTime).to.be.below(parseInt(bru.getVar("timeout")));
+  });
+  
+  test("Location header is present", function() {
+    expect(res.headers).to.have.property("location");
+    expect(res.headers.location).to.include(`/users/${res.body.id}`);
+  });
+}
+
+vars:pre-request {
+  newUserName: John Doe
+  newUserEmail: john.doe@example.com
+  newUserRole: user
+  firstName: John
+  lastName: Doe
+  department: Engineering
+}
+
+vars:post-response {
+  lastCreatedUserId: {{res.body.id}}
+  lastCreatedUserEmail: {{res.body.email}}
+  userCreationResponse: {{res.body}}
+}

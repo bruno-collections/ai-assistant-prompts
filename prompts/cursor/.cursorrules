@@ -1,0 +1,124 @@
+# Bruno API Client - Cursor AI Rules
+
+## Project Overview
+Bruno is an innovative API client that revolutionizes API testing and development by storing collections directly in the filesystem using a plain text markup language called "Bru". It's designed as a Postman alternative with Git-first collaboration and offline-only operation.
+
+## Core Architecture
+- **Electron App**: Desktop application (packages/bruno-app + bruno-electron)
+- **CLI Tool**: Command-line interface (packages/bruno-cli) 
+- **Language Parser**: Bru language parser and converter (packages/bruno-lang)
+- **File Storage**: Filesystem-based storage system (packages/bruno-filestore)
+- **Request Engine**: HTTP/GraphQL/gRPC/WebSocket request handling (packages/bruno-requests)
+- **Schema Validation**: Request/response validation (packages/bruno-schema)
+
+## Key Technologies
+- **Frontend**: React, Redux Toolkit, Styled Components, CodeMirror
+- **Backend**: Electron, Node.js, Axios
+- **Build**: Rsbuild (modern Webpack alternative)
+- **Testing**: Jest, Testing Library
+- **Languages**: JavaScript, TypeScript (limited), HTML, CSS/SASS
+
+## Bru File Format (.bru)
+Bruno uses a custom plain-text markup language for API requests:
+
+```bru
+meta {
+  name: API Request Name
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/endpoint
+  body: none
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "key": "value"
+  }
+}
+
+script:pre-request {
+  // JavaScript code executed before request
+  bru.setVar("timestamp", Date.now());
+}
+
+script:post-response {
+  // JavaScript code executed after response
+  bru.setVar("userId", res.body.id);
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
+vars:pre-request {
+  apiKey: secret123
+}
+
+vars:post-response {
+  userId: {{res.body.id}}
+}
+```
+
+## File Structure
+- `collection.bru` - Collection-level configuration
+- `bruno.json` - Collection metadata and settings
+- `environments/` - Environment files (.bru format)
+- Individual `.bru` files for each API request
+- Folders can contain `folder.bru` for folder-level settings
+
+## Environment Files
+```bru
+vars {
+  baseUrl: https://api.example.com
+  apiVersion: v1
+}
+
+vars:secret [
+  apiKey,
+  clientSecret
+]
+```
+
+## Key Packages & Responsibilities
+- `bruno-app`: React frontend application
+- `bruno-electron`: Electron main process and IPC handlers
+- `bruno-cli`: Command-line interface for running collections
+- `bruno-lang`: Bru language parser (uses Ohm.js grammar)
+- `bruno-filestore`: File system operations and format conversion
+- `bruno-requests`: HTTP/GraphQL/gRPC/WebSocket request execution
+- `bruno-schema`: Yup-based validation schemas
+- `bruno-js`: Runtime environment for pre/post scripts
+- `bruno-common`: Shared utilities and constants
+
+## Development Guidelines
+1. **File Format**: Always use .bru format for requests, never JSON
+2. **Git Integration**: Collections are designed for version control
+3. **Offline-First**: No cloud sync, everything stored locally
+4. **Modular Architecture**: Each package has specific responsibilities
+5. **Plain Text**: Human-readable format for easy collaboration
+
+## Common Patterns
+- Use `bru.setVar()` and `bru.getVar()` for variable management
+- Environment variables with `{{variableName}}` syntax
+- Pre-request and post-response scripts for dynamic behavior
+- Chai.js assertions in tests
+- File-based organization mirrors folder structure
+
+## When Working on Bruno:
+- Understand the .bru file format is central to everything
+- Respect the offline-first, Git-collaborative philosophy
+- Consider cross-platform compatibility (Windows, macOS, Linux)
+- Maintain backward compatibility with existing collections
+- Follow the modular package architecture
+- Test with real API collections, not just unit tests
