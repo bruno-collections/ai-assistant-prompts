@@ -62,12 +62,168 @@ vars:post-response {
 }
 ```
 
+## GraphQL API Requests
+Bruno supports GraphQL queries and mutations. Here's the structure for GraphQL requests:
+
+```bru
+meta {
+  name: GetPokemon
+  type: graphql
+  seq: 2
+}
+
+post {
+  url: https://graphql-api.example.com/graphql
+  body: graphql
+  auth: inherit
+}
+
+body:graphql {
+  query GetPokemon($name: String!) {
+    pokemon(name: $name) {
+      id
+      name
+      height
+      weight
+      types {
+        type {
+          name
+        }
+      }
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "name": "pikachu"
+  }
+}
+
+settings {
+  encodeUrl: true
+}
+```
+
+### GraphQL Request Components:
+- `meta.type`: Set to `"graphql"` for GraphQL requests
+- `post.body`: Set to `"graphql"` to indicate GraphQL body type
+- `body:graphql`: Contains the GraphQL query or mutation
+  - Supports queries: `query QueryName($variable: Type!) { ... }`
+  - Supports mutations: `mutation MutationName($variable: Type!) { ... }`
+  - Supports fragments and complex nested queries
+- `body:graphql:vars`: JSON object containing GraphQL variables
+  - Variables are referenced in the query using `$variableName` syntax
+  - Variable types must match the GraphQL schema (String!, Int, Boolean, etc.)
+- `settings.encodeUrl`: Boolean to enable URL encoding (typically `true` for GraphQL endpoints)
+- `auth`: Can be `"inherit"` (from collection), `"none"`, or custom auth configuration
+
+### GraphQL Variable Examples:
+```bru
+body:graphql:vars {
+  {
+    "name": "pikachu",
+    "limit": 10,
+    "offset": 0,
+    "includeDetails": true
+  }
+}
+```
+
+### GraphQL with Environment Variables:
+```bru
+body:graphql {
+  query GetUser($id: ID!) {
+    user(id: $id) {
+      id
+      name
+      email
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "id": "{{userId}}"
+  }
+}
+```
+
 ## File Structure
 - `collection.bru` - Collection-level configuration
 - `bruno.json` - Collection metadata and settings
 - `environments/` - Environment files (.bru format)
 - Individual `.bru` files for each API request
 - Folders can contain `folder.bru` for folder-level settings
+
+## Bruno.json Schema
+The `bruno.json` file contains collection metadata and configuration. Here's the schema structure:
+
+```json
+{
+  "version": "1",
+  "name": "my-api-collection",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git",
+    "*.log"
+  ],
+  "scripts": {
+    "moduleWhitelist": [
+      "fs",
+      "path",
+      "crypto"
+    ],
+    "filesystemAccess": {
+      "allow": true
+    }
+  },
+  "size": 0.004620552062988281,
+  "filesCount": 23,
+  "proxy": {
+    "bypassProxy": "localhost,127.0.0.1",
+    "enabled": "global",
+    "auth": {
+      "enabled": false,
+      "username": "",
+      "password": ""
+    },
+    "port": 8080,
+    "hostname": "proxy.example.com",
+    "protocol": "http"
+  },
+  "clientCertificates": {
+    "enabled": true,
+    "certs": []
+  },
+  "protobuf": {
+    "protoFiles": []
+  }
+}
+```
+
+### Schema Fields:
+- `version`: Bruno collection format version (typically "1")
+- `name`: Collection name identifier
+- `type`: Always "collection" for API collections
+- `ignore`: Array of file patterns to ignore (similar to .gitignore)
+- `scripts.moduleWhitelist`: Node.js modules allowed in scripts (e.g., "fs", "path", "crypto")
+- `scripts.filesystemAccess.allow`: Boolean to enable filesystem access in scripts
+- `size`: Collection size in MB (calculated automatically)
+- `filesCount`: Total number of files in collection (calculated automatically)
+- `proxy`: Proxy configuration for requests
+  - `bypassProxy`: Comma-separated hosts to bypass proxy
+  - `enabled`: "global", "collection", or false
+  - `auth`: Proxy authentication settings
+  - `port`: Proxy port number
+  - `hostname`: Proxy server hostname
+  - `protocol`: "http" or "https"
+- `clientCertificates`: Client certificate configuration
+  - `enabled`: Boolean to enable client certificates
+  - `certs`: Array of certificate configurations
+- `protobuf`: Protocol Buffer configuration
+  - `protoFiles`: Array of .proto file paths
 
 ## Environment Files
 ```bru
