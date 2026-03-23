@@ -45,25 +45,72 @@ My Collection/
 5. **Collection file** named `collection.yml` contains collection-level settings (optional)
 
 ### opencollection.yml Format
-**ALWAYS include the `opencollection` version header** in the collection root file. Use the latest version from the [OpenCollection spec](https://spec.opencollection.com/) (currently `1.0.0`). This is required for Bruno to recognize the collection:
+**ALWAYS include the `opencollection` version header** as the first line. Use the latest version from the [OpenCollection spec](https://spec.opencollection.com/) (currently `1.0.0`). This is required for Bruno to recognize the collection.
 
+**Minimal `opencollection.yml`** (use this when starting a new collection):
 ```yaml
 opencollection: 1.0.0
-name: Your Collection Name
+
+info:
+  name: Your Collection Name
 ```
 
-**Optional fields** (only add if specifically needed):
+**Full `opencollection.yml`** with optional collection-level fields:
 ```yaml
 opencollection: 1.0.0
-name: Your Collection Name
+
+info:
+  name: Bruno Example
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+
+request:
+  variables:
+    - name: tokenVar
+      value: tokenCollection
+      disabled: true
+  scripts:
+    - type: before-request
+      code: // console.log('Collection Level Script Logic')
+
+docs:
+  content: |-
+    ### Markdown Docs
+  type: text/markdown
+bundled: false
+extensions: {}
 ignore:
   - node_modules
   - .git
 ```
 
 **IMPORTANT**:
-- The `opencollection` version header is **mandatory** - without it, Bruno will not recognize the collection
-- Keep it minimal - Bruno adds metadata automatically
+- The `opencollection` version header is **mandatory** — without it, Bruno will not recognize the collection
+- The collection name goes under `info: name:`, not as a root-level `name:` key
+- `config:`, `request:`, `docs:` are **collection-level** settings (shared across all requests)
+- **DO NOT** add request-specific keys like `http: method:`, `http: url:`, or `http: body:` — those belong in individual request `.yml` files
+- **DO NOT** confuse this with individual request files which use `info:`, `http:`, `runtime:`, `settings:`
+
+❌ **WRONG** — do not put individual request fields in `opencollection.yml`:
+```yaml
+opencollection: 1.0.0
+info:
+  name: My API
+http:
+  method: GET
+  url: https://api.example.com/users
+```
+
+✅ **CORRECT** — individual requests go in separate `.yml` files (see Request File Structure below)
 
 ### YAML Request File Structure
 When creating `.yml` request files, use this structure with these **top-level sections**:
@@ -940,11 +987,40 @@ jobs:
 3. ❌ **Incorrect directory structure** - Environments must be in `environments/` folder
 4. ❌ **Hardcoded secrets** - Use variables and `secret: true` in environment files
 5. ❌ **Missing working-directory in CI/CD** - Always specify the collection path
-6. ❌ **Overly complex opencollection.yml** - Keep it minimal, let Bruno manage metadata
+6. ❌ **Putting request fields in opencollection.yml** - Do not add `http:` (method/url/body) to `opencollection.yml`. It supports collection-level `info:`, `config:`, `request:` (variables/scripts), and `docs:`, but individual request details go in separate `.yml` files
 7. ❌ **Not using variable interpolation** - Use `{{variableName}}` syntax
 8. ❌ **Mixing assertions and tests** - Use assertions for simple checks, tests for complex logic
 9. ❌ **Forgetting disabled fields** - Use `disabled: true` to disable headers, params, assertions
 10. ❌ **Not organizing requests** - Use folders and meaningful names
+
+### YAML Format Mistakes
+
+❌ **Don't use `meta:`** (Postman/other format) — use `info:` instead:
+```yaml
+meta:
+  name: Request Name  # WRONG — use info: instead
+```
+
+❌ **Don't put tests at root level** — they belong under `runtime.scripts`:
+```yaml
+tests: |
+  test("name", function() {...})  # WRONG — belongs under runtime.scripts
+```
+
+❌ **Wrong script type** — use `tests` (not `test`):
+```yaml
+runtime:
+  scripts:
+    - type: test  # WRONG — use 'tests'
+```
+
+✅ **Correct Format**:
+- Use `info:` (not `meta:`)
+- Use `http:` for method, url, headers, params
+- Use `runtime: scripts:` for all code
+- Script type must be `tests` (not `test`)
+- Must include `seq:` number for ordering
+- Indent code blocks with `|` or `|-`
 
 ## Quick Reference
 
