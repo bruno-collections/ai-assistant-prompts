@@ -17,8 +17,15 @@ mkdir -p .github
 ```
 
 2. Download the Copilot instructions:
+
+**YAML format (default, Bruno v3.1+):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/bruno-collections/ai-assistant-prompts/main/prompts/copilot/.github/copilot-instructions.md -o .github/copilot-instructions.md
+```
+
+**Bru format (legacy):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/bruno-collections/ai-assistant-prompts/main/prompts/copilot/.github/copilot-instructions-bru.md -o .github/copilot-instructions.md
 ```
 
 3. Restart your editor to load the new instructions
@@ -26,14 +33,15 @@ curl -fsSL https://raw.githubusercontent.com/bruno-collections/ai-assistant-prom
 ## ✨ Features
 
 ### Bruno-Aware Suggestions
-- **Bru Syntax**: Copilot understands .bru file structure
+- **YAML Syntax**: Copilot understands Bruno's YAML (OpenCollection) file structure
+- **Bru Syntax**: Also supports legacy `.bru` file format
 - **Variable Patterns**: Suggests proper `{{variableName}}` usage
 - **Authentication**: Knows Bruno's auth patterns
 - **Testing**: Suggests Chai.js assertions for Bruno tests
 
 ### What Copilot Will Suggest
-- ✅ Valid .bru file syntax and structure
-- ✅ Proper meta blocks with name, type, seq
+- ✅ Valid YAML or .bru file syntax and structure
+- ✅ Proper info/meta blocks with name, type, seq
 - ✅ Environment variable usage
 - ✅ Authentication patterns
 - ✅ Pre-request and post-response scripts
@@ -42,50 +50,51 @@ curl -fsSL https://raw.githubusercontent.com/bruno-collections/ai-assistant-prom
 ## 🎯 Usage Examples
 
 ### Creating Request Files
-When you start typing in a `.bru` file, Copilot will suggest:
+When you start typing in a `.yaml` request file, Copilot will suggest:
 
-```bru
-meta {
+```yaml
+info:
   name: Get User Profile
   type: http
   seq: 1
-}
 
-get {
-  url: {{baseUrl}}/users/{{userId}}
-  body: none
-  auth: bearer
-}
+http:
+  method: GET
+  url: "{{baseUrl}}/users/{{userId}}"
+  auth:
+    type: bearer
+    token: "{{token}}"
 ```
 
 ### Environment Variables
 In environment files, Copilot suggests:
 
-```bru
-vars {
-  baseUrl: https://api.example.com
-  apiVersion: v1
-}
-
-vars:secret [
-  apiKey,
-  authToken
-]
+```yaml
+variables:
+  - name: baseUrl
+    value: https://api.example.com
+  - name: apiVersion
+    value: v1
+  - name: apiKey
+    value: ""
+    secret: true
 ```
 
 ### Test Assertions
 When writing tests, Copilot suggests:
 
-```bru
-tests {
-  test("Status is 200", function() {
-    expect(res.status).to.equal(200);
-  });
-  
-  test("Response has data", function() {
-    expect(res.body).to.have.property("data");
-  });
-}
+```yaml
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Status is 200", function() {
+          expect(res.status).to.equal(200);
+        });
+
+        test("Response has data", function() {
+          expect(res.body).to.have.property("data");
+        });
 ```
 
 ## 🔧 Supported Editors
@@ -108,15 +117,15 @@ tests {
 
 ### File Context
 Copilot works better when you:
-- Name files descriptively: `create-user.bru`, `get-profile.bru`
+- Name files descriptively: `Create User.yaml`, `Get Profile.yaml`
 - Include comments explaining the API purpose
 - Use consistent variable naming
 
 ### Prompt Engineering
 Start typing what you want:
-```bru
+```yaml
 # Type this to get suggestions for a POST request
-meta {
+info:
   name: Create New User
   type: http
 ```
@@ -139,12 +148,12 @@ Build requests step by step:
 
 ### Poor Suggestions
 1. **Add Context**: Include more descriptive comments
-2. **Use Bruno Terminology**: Mention "Bruno", ".bru", "environment variables"
+2. **Use Bruno Terminology**: Mention "Bruno", ".yaml", "environment variables"
 3. **Reference Existing Files**: Keep similar requests open for context
 
 ### Missing Bruno Features
 1. **Update Instructions**: Ensure you have the latest instruction file
-2. **Provide Examples**: Include example .bru files in your project
+2. **Provide Examples**: Include example `.yaml` files in your project
 3. **Use Specific Names**: Name files with Bruno-specific patterns
 
 ## 🔄 Team Collaboration
@@ -166,10 +175,10 @@ git push
 ## 📊 Measuring Effectiveness
 
 ### Good Indicators
-- ✅ Copilot suggests .bru syntax instead of JSON
+- ✅ Copilot suggests YAML syntax for Bruno requests
 - ✅ Variable suggestions use `{{variableName}}` format
 - ✅ Test suggestions use Chai.js assertions
-- ✅ Authentication patterns match Bruno's auth blocks
+- ✅ Authentication patterns match Bruno's auth structure
 
 ### Improvement Areas
 - ❌ Suggestions use JSON format for requests
@@ -184,10 +193,10 @@ git push
 
 ## 📝 Example Workflow
 
-1. **Create New .bru File**: Start with a descriptive filename
-2. **Begin with Meta**: Type `meta {` and let Copilot suggest structure
+1. **Create New .yaml File**: Start with a descriptive filename
+2. **Begin with Info**: Type `info:` and let Copilot suggest structure
 3. **Add Request Details**: Include method, URL, and headers
-4. **Include Authentication**: Add appropriate auth block
+4. **Include Authentication**: Add appropriate auth configuration
 5. **Write Tests**: Add comprehensive test coverage
 6. **Refine Variables**: Use environment variables for reusable values
 

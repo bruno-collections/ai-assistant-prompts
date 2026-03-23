@@ -1,7 +1,9 @@
-# GitHub Copilot Instructions for Bruno API Client
+# GitHub Copilot Instructions for Bruno API Client (YAML / OpenCollection Format)
 
 ## About Bruno
-Bruno is an innovative API client that stores API collections directly in your filesystem using a plain text markup language called "Bru". It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
+Bruno is an innovative API client that stores API collections directly in your filesystem. As of **Bruno v3.1**, the default format is **YAML** based on the [OpenCollection specification](https://spec.opencollection.com/). It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
+
+> **Note**: For legacy Bru format instructions, see `copilot-instructions-bru.md`.
 
 ## Key Features
 - **Multiple Protocols**: HTTP/REST, GraphQL, gRPC, WebSocket, SOAP
@@ -10,6 +12,7 @@ Bruno is an innovative API client that stores API collections directly in your f
 - **Environment Management**: Multiple environments with variable support
 - **Secret Management**: Secure handling of API keys and tokens
 - **CLI Support**: Run collections in CI/CD pipelines
+- **YAML Format**: Human-readable, Git-friendly YAML files (OpenCollection spec)
 
 ## Core Concepts for Copilot
 
@@ -19,27 +22,27 @@ Bruno is an innovative API client that stores API collections directly in your f
 ```
 My Collection/
 ├── bruno.json                    # Collection metadata (REQUIRED)
-├── collection.bru                # Collection-level settings (optional)
+├── collection.yaml               # Collection-level settings (optional)
 ├── .gitignore                    # Git ignore file
 ├── environments/                 # Environment files directory
-│   ├── Local.bru
-│   ├── Production.bru
-│   └── Staging.bru
-├── folder.bru                    # Folder-level settings (optional)
-├── Get User.bru                  # Individual request files
-├── Create User.bru
+│   ├── Local.yaml
+│   ├── Production.yaml
+│   └── Staging.yaml
+├── folder.yaml                   # Folder-level settings (optional)
+├── Get User.yaml                 # Individual request files
+├── Create User.yaml
 └── Users/                        # Subfolder for organization
-    ├── folder.bru                # Folder metadata
-    ├── Get User by ID.bru
-    └── Update User.bru
+    ├── folder.yaml               # Folder metadata
+    ├── Get User by ID.yaml
+    └── Update User.yaml
 ```
 
 **Key Rules**:
 1. **bruno.json is REQUIRED** at the collection root - this identifies it as a Bruno collection
-2. **Request files** use `.bru` extension and contain a single API request
-3. **Folder files** named `folder.bru` contain folder-level metadata and settings
-4. **Environment files** go in `environments/` directory with `.bru` extension
-5. **Collection file** named `collection.bru` contains collection-level settings (optional)
+2. **Request files** use `.yaml` extension and contain a single API request
+3. **Folder files** named `folder.yaml` contain folder-level metadata and settings
+4. **Environment files** go in `environments/` directory with `.yaml` extension
+5. **Collection file** named `collection.yaml` contains collection-level settings (optional)
 
 ### bruno.json Format
 **ALWAYS use this minimal canonical format** for bruno.json:
@@ -62,293 +65,302 @@ My Collection/
 }
 ```
 
-**IMPORTANT**: 
+**IMPORTANT**:
 - Do NOT add `pathname`, `files`, `activeEnvironmentUid` or other fields unless the project specifically requires them
 - Use string values for "version" (not numbers)
 - Keep it minimal - Bruno adds metadata automatically
 
-### Bru File Format for Requests
-When creating `.bru` request files, use this structure:
+### YAML Request File Structure
+When creating `.yaml` request files, use this structure with these **top-level sections**:
 
-```bru
-meta {
+```yaml
+info:        # Request metadata (name, type, seq, tags)
+http:        # HTTP request configuration
+runtime:     # Scripts and assertions
+settings:    # Request settings
+docs:        # Request documentation
+```
+
+### Basic YAML Request Example
+
+```yaml
+info:
   name: Request Name
   type: http
   seq: 1
-}
 
-get {
-  url: {{baseUrl}}/endpoint
-  body: none
-  auth: none
-}
+http:
+  method: GET
+  url: "{{baseUrl}}/endpoint"
+  headers:
+    - name: content-type
+      value: application/json
+    - name: authorization
+      value: "Bearer {{token}}"
+  body:
+    type: json
+    data: |-
+      {
+        "key": "value"
+      }
 
-headers {
-  content-type: application/json
-  authorization: Bearer {{token}}
-}
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setVar("timestamp", Date.now());
+    - type: tests
+      code: |-
+        test("Status is 200", function() {
+          expect(res.status).to.equal(200);
+        });
 
-body:json {
-  {
-    "key": "value"
-  }
-}
-
-script:pre-request {
-  bru.setVar("timestamp", Date.now());
-}
-
-tests {
-  test("Status is 200", function() {
-    expect(res.status).to.equal(200);
-  });
-}
+settings:
+  encodeUrl: true
 ```
 
-### Request Types and Their Blocks
+### Request Types and Their Examples
 
 #### HTTP/REST Requests
-```bru
-meta {
+```yaml
+info:
   name: Create User
   type: http
   seq: 1
-}
 
-post {
-  url: {{baseUrl}}/users
-  body: json
-  auth: bearer
-}
+http:
+  method: POST
+  url: "{{baseUrl}}/users"
+  body:
+    type: json
+    data: |-
+      {
+        "username": "johndoe",
+        "email": "john@example.com"
+      }
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+settings:
+  encodeUrl: true
 ```
 
 #### GraphQL Requests
-```bru
-meta {
+```yaml
+info:
   name: Get User Data
-  type: graphql-request
+  type: http
   seq: 1
-}
 
-post {
-  url: {{baseUrl}}/graphql
-  body: graphql
-  auth: bearer
-}
+http:
+  method: POST
+  url: "{{baseUrl}}/graphql"
+  body:
+    type: graphql
+    data: |-
+      query {
+        user(id: "123") {
+          id
+          name
+          email
+        }
+      }
+  auth:
+    type: bearer
+    token: "{{token}}"
 
-body:graphql {
-  query {
-    user(id: "123") {
-      id
-      name
-      email
-    }
-  }
-}
-
-body:graphql:vars {
-  {
-    "userId": "123"
-  }
-}
+settings:
+  encodeUrl: true
 ```
 
 #### gRPC Requests
-```bru
-meta {
+```yaml
+info:
   name: SayHello
   type: grpc
   seq: 1
-}
 
-grpc {
-  url: {{host}}
-  method: /hello.HelloService/SayHello
-  body: grpc
+grpc:
+  url: "{{host}}"
+  service: hello.HelloService
+  method: SayHello
+  body:
+    type: json
+    data: |-
+      {
+        "greeting": "hello"
+      }
   auth: inherit
-  methodType: unary
-}
 
-metadata {
-  authorization: Bearer {{token}}
-}
-
-body:grpc {
-  name: message 1
-  content: '''
-    {
-      "greeting": "hello"
-    }
-  '''
-}
+settings:
+  encodeUrl: true
 ```
 
 #### WebSocket Requests
-```bru
-meta {
+```yaml
+info:
   name: WebSocket Test
   type: ws
   seq: 1
-}
 
-ws {
-  url: ws://localhost:8081/ws
+ws:
+  url: "ws://localhost:8081/ws"
+  headers:
+    - name: Authorization
+      value: "Bearer {{token}}"
   auth: inherit
-}
 
-headers {
-  Authorization: Bearer {{token}}
-}
-
-body:ws {
-  name: message 1
-  content: '''
-    {
-      "action": "subscribe",
-      "channel": "updates"
-    }
-  '''
-}
+settings:
+  encodeUrl: true
 ```
 
 ### Body Formats
 
 #### JSON Body
-```bru
-body:json {
-  {
-    "username": "johndoe",
-    "email": "john@example.com"
-  }
-}
+```yaml
+body:
+  type: json
+  data: |-
+    {
+      "username": "johndoe",
+      "email": "john@example.com"
+    }
 ```
 
 #### Text Body
-```bru
-body:text {
-  This is plain text content
-}
+```yaml
+body:
+  type: text
+  data: "This is plain text content"
 ```
 
 #### XML Body
-```bru
-body:xml {
-  <?xml version="1.0" encoding="UTF-8"?>
-  <user>
-    <username>johndoe</username>
-    <email>john@example.com</email>
-  </user>
-}
+```yaml
+body:
+  type: xml
+  data: |-
+    <?xml version="1.0" encoding="UTF-8"?>
+    <user>
+      <username>johndoe</username>
+      <email>john@example.com</email>
+    </user>
 ```
 
 #### Form URL Encoded
-```bru
-body:form-urlencoded {
-  username: johndoe
-  password: secret123
-  ~disabled_field: value
-}
+```yaml
+body:
+  type: form-urlencoded
+  data:
+    - name: username
+      value: johndoe
+    - name: password
+      value: secret123
+    - name: disabled_field
+      value: value
+      disabled: true
 ```
 
 #### Multipart Form
-```bru
-body:multipart-form {
-  username: johndoe
-  avatar: @file(/path/to/avatar.jpg)
-  description: User profile picture
-}
+```yaml
+body:
+  type: multipart-form
+  data:
+    - name: username
+      value: johndoe
+    - name: avatar
+      value: "@file(/path/to/avatar.jpg)"
+    - name: description
+      value: User profile picture
 ```
 
-#### File Upload
-```bru
-body:file {
-  file: @file(path/to/file.json) @contentType(application/json)
-}
-```
-
-### Authentication Blocks
+### Authentication
 
 #### Bearer Token
-```bru
-auth:bearer {
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-}
+```yaml
+auth:
+  type: bearer
+  token: "{{token}}"
 ```
 
 #### Basic Auth
-```bru
-auth:basic {
+```yaml
+auth:
+  type: basic
   username: admin
   password: secret123
-}
 ```
 
 #### API Key
-```bru
-auth:apikey {
+```yaml
+auth:
+  type: apikey
   key: x-api-key
-  value: api-secret-key-12345
+  value: "{{api-key}}"
   placement: header
-}
 ```
 
 #### OAuth2
-```bru
-auth:oauth2 {
+```yaml
+auth:
+  type: oauth2
   grant_type: authorization_code
   callback_url: http://localhost:8080/callback
   authorization_url: https://provider.com/oauth/authorize
   access_token_url: https://provider.com/oauth/token
-  client_id: {{client_id}}
-  client_secret: {{client_secret}}
+  client_id: "{{client_id}}"
+  client_secret: "{{client_secret}}"
   scope: read write
-}
 ```
+
+**Supported auth types**: `none`, `inherit`, `basic`, `bearer`, `apikey`, `digest`, `oauth2`, `awsv4`, `ntlm`.
 
 ### Headers and Parameters
 
 #### Headers
-```bru
-headers {
-  content-type: application/json
-  x-api-key: {{apiKey}}
-  x-request-id: {{$uuid}}
-  ~disabled-header: value
-}
+Headers are arrays of objects with `name`, `value`, and optional `disabled` fields:
+```yaml
+http:
+  headers:
+    - name: content-type
+      value: application/json
+    - name: x-api-key
+      value: "{{apiKey}}"
+    - name: x-request-id
+      value: "{{$uuid}}"
+    - name: disabled-header
+      value: some-value
+      disabled: true
 ```
 
 #### Query Parameters
-```bru
-params:query {
-  page: 1
-  limit: 10
-  sort: desc
-  ~disabled_param: value
-}
+```yaml
+http:
+  params:
+    query:
+      - name: page
+        value: "1"
+      - name: limit
+        value: "10"
+      - name: sort
+        value: desc
+      - name: disabled_param
+        value: value
+        disabled: true
 ```
 
 #### Path Parameters
-```bru
-params:path {
-  userId: 123
-  status: active
-}
+```yaml
+http:
+  params:
+    path:
+      - name: userId
+        value: "123"
+      - name: status
+        value: active
 ```
 
 ### Variables
-
-#### Request-Level Variables
-```bru
-vars:pre-request {
-  user_id: 12345
-  environment: production
-}
-
-vars:post-response {
-  response_id: {{res.body.id}}
-  processed_at: {{$timestamp}}
-}
-```
 
 #### Variable Interpolation
 Use `{{variableName}}` syntax to reference variables:
@@ -360,51 +372,65 @@ Use `{{variableName}}` syntax to reference variables:
 ### Scripts
 
 #### Pre-Request Script
-```bru
-script:pre-request {
-  const timestamp = Date.now();
-  bru.setVar("request_timestamp", timestamp);
+```yaml
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const timestamp = Date.now();
+        bru.setVar("request_timestamp", timestamp);
 
-  // Set headers dynamically
-  req.setHeader("X-Timestamp", timestamp.toString());
+        // Set headers dynamically
+        req.setHeader("X-Timestamp", timestamp.toString());
 
-  // Modify request body
-  const body = req.getBody();
-  body.timestamp = timestamp;
-  req.setBody(JSON.stringify(body));
-}
+        // Modify request body
+        const body = req.getBody();
+        body.timestamp = timestamp;
+        req.setBody(JSON.stringify(body));
 ```
 
 #### Post-Response Script
-```bru
-script:post-response {
-  // Extract data from response
-  const token = res.body.token;
-  bru.setVar("authToken", token);
+```yaml
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        // Extract data from response
+        const token = res.body.token;
+        bru.setVar("authToken", token);
 
-  // Set environment variable
-  bru.setEnvVar("sessionToken", token);
+        // Set environment variable
+        bru.setEnvVar("sessionToken", token);
 
-  // Chain to next request
-  if (res.status === 200) {
-    bru.setNextRequest("Get User Profile");
-  }
-}
+        // Chain to next request
+        if (res.status === 200) {
+          bru.setNextRequest("Get User Profile");
+        }
 ```
 
 ### Testing and Assertions
 
-#### Assert Block (Simple Assertions)
-**Use for simple, declarative assertions:**
-```bru
-assert {
-  res.status: eq 200
-  res.body.success: eq true
-  res.body.data: isJson
-  res.body.id: isNumber
-  res.headers.content-type: contains application/json
-  res.body.email: contains @example.com
-}
+#### Assertions (Declarative)
+**Use for simple, declarative assertions without writing JavaScript:**
+```yaml
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.success
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isJson
+    - expression: res.body.id
+      operator: isNumber
+    - expression: res.headers.content-type
+      operator: contains
+      value: application/json
+    - expression: res.body.email
+      operator: contains
+      value: "@example.com"
 ```
 
 **Assertion Operators**:
@@ -428,126 +454,151 @@ assert {
 - `isTrue` - Is true
 - `isFalse` - Is false
 
-**Disable assertions** with `~` prefix:
-```bru
-assert {
-  res.status: eq 200
-  ~res.body.optional: eq value
-}
-```
+#### Tests (Complex Validation)
+**Use for complex logic, loops, and custom validation with Chai.js:**
+```yaml
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Status is 200", function() {
+          expect(res.status).to.equal(200);
+        });
 
-#### Tests Block (Complex Validation)
-**Use for complex logic, loops, and custom validation:**
-```bru
-tests {
-  test("Status is 200", function() {
-    expect(res.status).to.equal(200);
-  });
+        test("Response has required fields", function() {
+          expect(res.body).to.have.property('id');
+          expect(res.body).to.have.property('name');
+          expect(res.body.email).to.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/);
+        });
 
-  test("Response has required fields", function() {
-    expect(res.body).to.have.property('id');
-    expect(res.body).to.have.property('name');
-    expect(res.body.email).to.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/);
-  });
-
-  test("Array contains items", function() {
-    expect(res.body.items).to.be.an('array');
-    expect(res.body.items).to.have.lengthOf.at.least(1);
-  });
-}
+        test("Array contains items", function() {
+          expect(res.body.items).to.be.an('array');
+          expect(res.body.items).to.have.lengthOf.at.least(1);
+        });
 ```
 
 **When to Use**:
-- Use `assert` block for simple, declarative assertions
-- Use `tests` block with Chai.js for complex logic, loops, and custom validation
+- Use `assertions` for simple, declarative assertions
+- Use `tests` scripts with Chai.js for complex logic, loops, and custom validation
 
 ### Environment Files
 
-Environment files go in the `environments/` directory:
+Environment files go in the `environments/` directory using `.yaml` extension:
 
-```bru
-vars {
-  baseUrl: https://api.example.com
-  apiVersion: v1
-  timeout: 30000
-}
-
-vars:secret [
-  apiKey,
-  authToken,
-  clientSecret
-]
+```yaml
+variables:
+  - name: baseUrl
+    value: https://api.example.com
+  - name: apiVersion
+    value: v1
+  - name: timeout
+    value: "30000"
+  - name: apiKey
+    value: ""
+    secret: true
+  - name: authToken
+    value: ""
+    secret: true
 ```
 
-**Environment file naming**: `environments/Production.bru`, `environments/Local.bru`
-
-**Color coding** (optional):
-```bru
-color: #FF5733
-```
+**Environment file naming**: `environments/Production.yaml`, `environments/Local.yaml`
 
 ### Folder Files
 
-Folder files (`folder.bru`) contain folder-level metadata and settings:
+Folder files (`folder.yaml`) contain folder-level metadata and settings:
 
-```bru
-meta {
+```yaml
+info:
   name: User Management
-  seq: 1
-}
+  type: folder
 
-headers {
-  x-api-version: v2
-  x-client-id: {{clientId}}
-}
+http:
+  headers:
+    - name: x-api-version
+      value: v2
+    - name: x-client-id
+      value: "{{clientId}}"
+  auth:
+    type: bearer
+    token: "{{token}}"
 
-auth {
-  mode: bearer
-}
-
-script:pre-request {
-  // Runs before every request in this folder
-  bru.setVar("folder_timestamp", Date.now());
-}
-
-tests {
-  // Runs after every request in this folder
-  test("Folder level test", function() {
-    expect(res.status).to.be.oneOf([200, 201, 204]);
-  });
-}
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Runs before every request in this folder
+        bru.setVar("folder_timestamp", Date.now());
+    - type: tests
+      code: |-
+        // Runs after every request in this folder
+        test("Folder level test", function() {
+          expect(res.status).to.be.oneOf([200, 201, 204]);
+        });
 ```
 
 ### Collection Files
 
-Collection files (`collection.bru`) contain collection-level settings:
+Collection files (`collection.yaml`) contain collection-level settings:
 
-```bru
-meta {
+```yaml
+info:
   name: My API Collection
-}
 
-headers {
-  user-agent: Bruno/1.0
-}
+http:
+  headers:
+    - name: user-agent
+      value: Bruno/1.0
 
-script:pre-request {
-  // Runs before every request in the collection
-  console.log("Collection pre-request script");
-}
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Runs before every request in the collection
+        console.log("Collection pre-request script");
+    - type: tests
+      code: |-
+        // Runs after every request in the collection
+        test("Collection level test", function() {
+          expect(res.responseTime).to.be.below(5000);
+        });
+```
 
-tests {
-  // Runs after every request in the collection
-  test("Collection level test", function() {
-    expect(res.responseTime).to.be.below(5000);
-  });
-}
+### Settings
+
+Request-level settings:
+```yaml
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `encodeUrl` | boolean | Whether to URL-encode the request URL |
+| `timeout` | number | Request timeout in milliseconds (0 = no timeout) |
+| `followRedirects` | boolean | Whether to follow HTTP redirects |
+| `maxRedirects` | number | Maximum number of redirects to follow |
+
+### Documentation
+
+Request-level documentation in Markdown format:
+```yaml
+docs: |-
+  # User Creation API
+
+  This endpoint creates a new user in the system.
+
+  ## Required Fields
+  - name: User's full name
+  - email: User's email address
 ```
 
 ## JavaScript API Reference
 
 ### Request Object (req)
-Available in `script:pre-request` blocks:
+Available in `before-request` scripts:
 
 ```javascript
 // URL manipulation
@@ -572,7 +623,7 @@ req.setTimeout(5000)            // Set timeout in milliseconds
 ```
 
 ### Response Object (res)
-Available in `script:post-response` and `tests` blocks:
+Available in `after-response` and `tests` scripts:
 
 ```javascript
 res.status                      // HTTP status code (e.g., 200)
@@ -636,84 +687,90 @@ Bruno provides built-in dynamic variables:
 ### Common Patterns
 
 #### 1. Authentication Flow
-```bru
-# Login.bru
-meta {
+```yaml
+# Login.yaml
+info:
   name: Login
   type: http
   seq: 1
-}
 
-post {
-  url: {{baseUrl}}/auth/login
-  body: json
-  auth: none
-}
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/login"
+  body:
+    type: json
+    data: |-
+      {
+        "username": "{{username}}",
+        "password": "{{password}}"
+      }
+  auth:
+    type: none
 
-body:json {
-  {
-    "username": "{{username}}",
-    "password": "{{password}}"
-  }
-}
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        // Save token for subsequent requests
+        const token = res.body.access_token;
+        bru.setEnvVar("authToken", token);
 
-script:post-response {
-  // Save token for subsequent requests
-  const token = res.body.access_token;
-  bru.setEnvVar("authToken", token);
-
-  // Chain to next request
-  bru.setNextRequest("Get User Profile");
-}
-
-tests {
-  test("Login successful", function() {
-    expect(res.status).to.equal(200);
-    expect(res.body).to.have.property('access_token');
-  });
-}
+        // Chain to next request
+        bru.setNextRequest("Get User Profile");
+    - type: tests
+      code: |-
+        test("Login successful", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body).to.have.property('access_token');
+        });
 ```
 
 #### 2. Data Extraction and Reuse
-```bru
-script:post-response {
-  // Extract multiple values
-  const userId = res.body.user.id;
-  const sessionId = res.body.session.id;
-  const expiresAt = res.body.session.expires_at;
+```yaml
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        // Extract multiple values
+        const userId = res.body.user.id;
+        const sessionId = res.body.session.id;
+        const expiresAt = res.body.session.expires_at;
 
-  // Store for later use
-  bru.setVar("userId", userId);
-  bru.setVar("sessionId", sessionId);
-  bru.setEnvVar("currentSession", sessionId);
-}
+        // Store for later use
+        bru.setVar("userId", userId);
+        bru.setVar("sessionId", sessionId);
+        bru.setEnvVar("currentSession", sessionId);
 ```
 
 #### 3. Conditional Request Chaining
-```bru
-script:post-response {
-  if (res.status === 200 && res.body.requiresVerification) {
-    bru.setNextRequest("Send Verification Code");
-  } else if (res.status === 200) {
-    bru.setNextRequest("Get Dashboard");
-  } else {
-    bru.setNextRequest(null); // Stop chain
-  }
-}
+```yaml
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 200 && res.body.requiresVerification) {
+          bru.setNextRequest("Send Verification Code");
+        } else if (res.status === 200) {
+          bru.setNextRequest("Get Dashboard");
+        } else {
+          bru.setNextRequest(null); // Stop chain
+        }
 ```
 
 #### 4. Dynamic Request Modification
-```bru
-script:pre-request {
-  // Add timestamp to prevent caching
-  const url = req.getUrl();
-  req.setUrl(`${url}?t=${Date.now()}`);
+```yaml
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // Add timestamp to prevent caching
+        const url = req.getUrl();
+        req.setUrl(`${url}?t=${Date.now()}`);
 
-  // Add signature header
-  const body = req.getBody();
-  const signature = generateSignature(body);
-  req.setHeader("X-Signature", signature);
-}
+        // Add signature header
+        const body = req.getBody();
+        const signature = generateSignature(body);
+        req.setHeader("X-Signature", signature);
 ```
 
 ## CI/CD & GitHub Actions
@@ -732,7 +789,7 @@ script:pre-request {
 The `working-directory` tells Bruno where to find:
 - `bruno.json` (collection metadata)
 - Environment files in `environments/`
-- Request `.bru` files
+- Request `.yaml` files
 - Where to output results
 
 #### Common bru CLI Options
@@ -792,12 +849,14 @@ jobs:
 #### Using Environment Variables from CI/CD
 Reference CI/CD secrets in your environment files:
 
-```bru
-vars {
-  baseUrl: {{process.env.BASE_URL}}
-  apiKey: {{process.env.API_KEY}}
-  environment: production
-}
+```yaml
+variables:
+  - name: baseUrl
+    value: "{{process.env.BASE_URL}}"
+  - name: apiKey
+    value: "{{process.env.API_KEY}}"
+  - name: environment
+    value: production
 ```
 
 Or set them in the workflow:
@@ -811,7 +870,7 @@ Or set them in the workflow:
 ```
 
 #### Best Practices for CI/CD
-1. **Use environment variables** for secrets - never commit secrets to `.bru` files
+1. **Use environment variables** for secrets - never commit secrets to `.yaml` files
 2. **Separate environments** for different stages (dev, staging, production)
 3. **Generate reports** for visibility into test results
 4. **Use --bail flag** to fail fast on critical test failures
@@ -843,9 +902,9 @@ jobs:
 ## Best Practices
 
 ### File Organization
-1. **Use descriptive names** for request files: `Get User by ID.bru`, not `request1.bru`
+1. **Use descriptive names** for request files: `Get User by ID.yaml`, not `request1.yaml`
 2. **Organize in folders** by feature or resource: `Users/`, `Orders/`, `Auth/`
-3. **Use folder.bru** to share common settings across requests in a folder
+3. **Use folder.yaml** to share common settings across requests in a folder
 4. **Keep environments consistent** across team members
 5. **Use .gitignore** to exclude sensitive data and temporary files
 
@@ -855,11 +914,11 @@ jobs:
 3. **Folder variables** for values shared within a folder
 4. **Request variables** for request-specific values
 5. **Runtime variables** for temporary values during execution
-6. **Secret variables** for sensitive data (use `vars:secret` block)
+6. **Secret variables** for sensitive data (use `secret: true` in environment files)
 
 ### Testing Strategy
-1. **Use assert blocks** for simple validations
-2. **Use tests blocks** for complex logic and custom validations
+1. **Use assertions** for simple validations
+2. **Use tests scripts** for complex logic and custom validations
 3. **Test at multiple levels**: request, folder, and collection
 4. **Validate status codes, headers, and response body**
 5. **Use meaningful test names** that describe what's being tested
@@ -867,14 +926,14 @@ jobs:
 
 ### Security
 1. **Never commit secrets** to version control
-2. **Use vars:secret** for sensitive environment variables
+2. **Use `secret: true`** for sensitive environment variables
 3. **Use .gitignore** to exclude secret files
 4. **Use CI/CD secrets** for production credentials
 5. **Rotate API keys** regularly
 
 ### Git Workflow
 1. **Commit collection changes** alongside code changes
-2. **Review .bru file changes** in pull requests
+2. **Review .yaml file changes** in pull requests
 3. **Use branches** for experimental API changes
 4. **Tag releases** to track API versions
 5. **Document breaking changes** in commit messages
@@ -882,45 +941,44 @@ jobs:
 ## Common Mistakes to Avoid
 
 1. ❌ **Missing bruno.json** - Every collection MUST have a bruno.json file
-2. ❌ **Wrong file extensions** - Use `.bru` for requests, environments, and folders
+2. ❌ **Wrong file extensions** - Use `.yaml` for requests, environments, and folders
 3. ❌ **Incorrect directory structure** - Environments must be in `environments/` folder
-4. ❌ **Hardcoded secrets** - Use variables and `vars:secret` blocks
+4. ❌ **Hardcoded secrets** - Use variables and `secret: true` in environment files
 5. ❌ **Missing working-directory in CI/CD** - Always specify the collection path
 6. ❌ **Overly complex bruno.json** - Keep it minimal, let Bruno manage metadata
 7. ❌ **Not using variable interpolation** - Use `{{variableName}}` syntax
-8. ❌ **Mixing assert and tests** - Use assert for simple checks, tests for complex logic
-9. ❌ **Forgetting to disable fields** - Use `~` prefix to disable headers, params, assertions
+8. ❌ **Mixing assertions and tests** - Use assertions for simple checks, tests for complex logic
+9. ❌ **Forgetting disabled fields** - Use `disabled: true` to disable headers, params, assertions
 10. ❌ **Not organizing requests** - Use folders and meaningful names
 
 ## Quick Reference
 
 ### File Types
 - `bruno.json` - Collection metadata (REQUIRED)
-- `collection.bru` - Collection-level settings
-- `folder.bru` - Folder-level settings
-- `*.bru` - Request files
-- `environments/*.bru` - Environment files
+- `collection.yaml` - Collection-level settings
+- `folder.yaml` - Folder-level settings
+- `*.yaml` - Request files
+- `environments/*.yaml` - Environment files
 
 ### Variable Scopes (in order of precedence)
 1. Runtime variables (set via `bru.setVar()`)
-2. Request variables (`vars:pre-request`, `vars:post-response`)
-3. Folder variables (from `folder.bru`)
-4. Collection variables (from `collection.bru`)
-5. Environment variables (from `environments/*.bru`)
+2. Request variables
+3. Folder variables (from `folder.yaml`)
+4. Collection variables (from `collection.yaml`)
+5. Environment variables (from `environments/*.yaml`)
 6. Global environment variables
 7. Process environment variables (`process.env.*`)
 
 ### Script Execution Order
-1. Collection `script:pre-request`
-2. Folder `script:pre-request`
-3. Request `script:pre-request`
+1. Collection `before-request`
+2. Folder `before-request`
+3. Request `before-request`
 4. **Request is sent**
-5. Request `script:post-response`
-6. Folder `script:post-response`
-7. Collection `script:post-response`
+5. Request `after-response`
+6. Folder `after-response`
+7. Collection `after-response`
 8. Request `tests`
 9. Folder `tests`
 10. Collection `tests`
 
-When generating Bruno-related code, prioritize the .bru file format, proper directory structure, and Git-collaborative workflow.
-
+When generating Bruno-related code, prioritize the YAML file format (OpenCollection spec), proper directory structure, and Git-collaborative workflow.
