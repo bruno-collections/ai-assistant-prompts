@@ -21,57 +21,52 @@ Bruno is an innovative API client that stores API collections directly in your f
 
 ```
 My Collection/
-├── bruno.json                    # Collection metadata (REQUIRED)
-├── collection.yaml               # Collection-level settings (optional)
+├── opencollection.yml             # Collection root file (REQUIRED)
+├── collection.yml                 # Collection-level settings (optional)
 ├── .gitignore                    # Git ignore file
 ├── environments/                 # Environment files directory
-│   ├── Local.yaml
-│   ├── Production.yaml
-│   └── Staging.yaml
-├── folder.yaml                   # Folder-level settings (optional)
-├── Get User.yaml                 # Individual request files
-├── Create User.yaml
+│   ├── Local.yml
+│   ├── Production.yml
+│   └── Staging.yml
+├── folder.yml                    # Folder-level settings (optional)
+├── Get User.yml                  # Individual request files
+├── Create User.yml
 └── Users/                        # Subfolder for organization
-    ├── folder.yaml               # Folder metadata
-    ├── Get User by ID.yaml
-    └── Update User.yaml
+    ├── folder.yml                # Folder metadata
+    ├── Get User by ID.yml
+    └── Update User.yml
 ```
 
 **Key Rules**:
-1. **bruno.json is REQUIRED** at the collection root - this identifies it as a Bruno collection
-2. **Request files** use `.yaml` extension and contain a single API request
-3. **Folder files** named `folder.yaml` contain folder-level metadata and settings
-4. **Environment files** go in `environments/` directory with `.yaml` extension
-5. **Collection file** named `collection.yaml` contains collection-level settings (optional)
+1. **opencollection.yml is REQUIRED** at the collection root - this identifies it as a Bruno OpenCollection
+2. **Request files** use `.yml` extension and contain a single API request
+3. **Folder files** named `folder.yml` contain folder-level metadata and settings
+4. **Environment files** go in `environments/` directory with `.yml` extension
+5. **Collection file** named `collection.yml` contains collection-level settings (optional)
 
-### bruno.json Format
-**ALWAYS use this minimal canonical format** for bruno.json:
+### opencollection.yml Format
+**ALWAYS include the `opencollection` version header** in the collection root file. Use the latest version from the [OpenCollection spec](https://spec.opencollection.com/) (currently `1.0.0`). This is required for Bruno to recognize the collection:
 
-```json
-{
-  "version": "1",
-  "name": "Your Collection Name",
-  "type": "collection"
-}
+```yaml
+opencollection: 1.0.0
+name: Your Collection Name
 ```
 
 **Optional fields** (only add if specifically needed):
-```json
-{
-  "version": "1",
-  "name": "Your Collection Name",
-  "type": "collection",
-  "ignore": ["node_modules", ".git"]
-}
+```yaml
+opencollection: 1.0.0
+name: Your Collection Name
+ignore:
+  - node_modules
+  - .git
 ```
 
 **IMPORTANT**:
-- Do NOT add `pathname`, `files`, `activeEnvironmentUid` or other fields unless the project specifically requires them
-- Use string values for "version" (not numbers)
+- The `opencollection` version header is **mandatory** - without it, Bruno will not recognize the collection
 - Keep it minimal - Bruno adds metadata automatically
 
 ### YAML Request File Structure
-When creating `.yaml` request files, use this structure with these **top-level sections**:
+When creating `.yml` request files, use this structure with these **top-level sections**:
 
 ```yaml
 info:        # Request metadata (name, type, seq, tags)
@@ -483,7 +478,7 @@ runtime:
 
 ### Environment Files
 
-Environment files go in the `environments/` directory using `.yaml` extension:
+Environment files go in the `environments/` directory using `.yml` extension:
 
 ```yaml
 variables:
@@ -501,11 +496,11 @@ variables:
     secret: true
 ```
 
-**Environment file naming**: `environments/Production.yaml`, `environments/Local.yaml`
+**Environment file naming**: `environments/Production.yml`, `environments/Local.yml`
 
 ### Folder Files
 
-Folder files (`folder.yaml`) contain folder-level metadata and settings:
+Folder files (`folder.yml`) contain folder-level metadata and settings:
 
 ```yaml
 info:
@@ -538,7 +533,7 @@ runtime:
 
 ### Collection Files
 
-Collection files (`collection.yaml`) contain collection-level settings:
+Collection files (`collection.yml`) contain collection-level settings:
 
 ```yaml
 info:
@@ -688,7 +683,7 @@ Bruno provides built-in dynamic variables:
 
 #### 1. Authentication Flow
 ```yaml
-# Login.yaml
+# Login.yml
 info:
   name: Login
   type: http
@@ -787,9 +782,9 @@ runtime:
 ```
 
 The `working-directory` tells Bruno where to find:
-- `bruno.json` (collection metadata)
+- `opencollection.yml` (collection root file)
 - Environment files in `environments/`
-- Request `.yaml` files
+- Request `.yml` files
 - Where to output results
 
 #### Common bru CLI Options
@@ -870,7 +865,7 @@ Or set them in the workflow:
 ```
 
 #### Best Practices for CI/CD
-1. **Use environment variables** for secrets - never commit secrets to `.yaml` files
+1. **Use environment variables** for secrets - never commit secrets to `.yml` files
 2. **Separate environments** for different stages (dev, staging, production)
 3. **Generate reports** for visibility into test results
 4. **Use --bail flag** to fail fast on critical test failures
@@ -902,9 +897,9 @@ jobs:
 ## Best Practices
 
 ### File Organization
-1. **Use descriptive names** for request files: `Get User by ID.yaml`, not `request1.yaml`
+1. **Use descriptive names** for request files: `Get User by ID.yml`, not `request1.yml`
 2. **Organize in folders** by feature or resource: `Users/`, `Orders/`, `Auth/`
-3. **Use folder.yaml** to share common settings across requests in a folder
+3. **Use folder.yml** to share common settings across requests in a folder
 4. **Keep environments consistent** across team members
 5. **Use .gitignore** to exclude sensitive data and temporary files
 
@@ -933,19 +928,19 @@ jobs:
 
 ### Git Workflow
 1. **Commit collection changes** alongside code changes
-2. **Review .yaml file changes** in pull requests
+2. **Review .yml file changes** in pull requests
 3. **Use branches** for experimental API changes
 4. **Tag releases** to track API versions
 5. **Document breaking changes** in commit messages
 
 ## Common Mistakes to Avoid
 
-1. ❌ **Missing bruno.json** - Every collection MUST have a bruno.json file
-2. ❌ **Wrong file extensions** - Use `.yaml` for requests, environments, and folders
+1. ❌ **Missing opencollection.yml** - Every collection MUST have an `opencollection.yml` file with an `opencollection` version header
+2. ❌ **Wrong file extensions** - Use `.yml` for requests, environments, and folders
 3. ❌ **Incorrect directory structure** - Environments must be in `environments/` folder
 4. ❌ **Hardcoded secrets** - Use variables and `secret: true` in environment files
 5. ❌ **Missing working-directory in CI/CD** - Always specify the collection path
-6. ❌ **Overly complex bruno.json** - Keep it minimal, let Bruno manage metadata
+6. ❌ **Overly complex opencollection.yml** - Keep it minimal, let Bruno manage metadata
 7. ❌ **Not using variable interpolation** - Use `{{variableName}}` syntax
 8. ❌ **Mixing assertions and tests** - Use assertions for simple checks, tests for complex logic
 9. ❌ **Forgetting disabled fields** - Use `disabled: true` to disable headers, params, assertions
@@ -954,18 +949,18 @@ jobs:
 ## Quick Reference
 
 ### File Types
-- `bruno.json` - Collection metadata (REQUIRED)
-- `collection.yaml` - Collection-level settings
-- `folder.yaml` - Folder-level settings
-- `*.yaml` - Request files
-- `environments/*.yaml` - Environment files
+- `opencollection.yml` - Collection root file (REQUIRED, must include `opencollection` version header)
+- `collection.yml` - Collection-level settings
+- `folder.yml` - Folder-level settings
+- `*.yml` - Request files
+- `environments/*.yml` - Environment files
 
 ### Variable Scopes (in order of precedence)
 1. Runtime variables (set via `bru.setVar()`)
 2. Request variables
-3. Folder variables (from `folder.yaml`)
-4. Collection variables (from `collection.yaml`)
-5. Environment variables (from `environments/*.yaml`)
+3. Folder variables (from `folder.yml`)
+4. Collection variables (from `collection.yml`)
+5. Environment variables (from `environments/*.yml`)
 6. Global environment variables
 7. Process environment variables (`process.env.*`)
 

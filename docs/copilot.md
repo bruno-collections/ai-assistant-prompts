@@ -50,7 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/bruno-collections/ai-assistant-prom
 ## 🎯 Usage Examples
 
 ### Creating Request Files
-When you start typing in a `.yaml` request file, Copilot will suggest:
+When you start typing in a `.yml` request file, Copilot will suggest:
 
 ```yaml
 info:
@@ -117,7 +117,7 @@ runtime:
 
 ### File Context
 Copilot works better when you:
-- Name files descriptively: `Create User.yaml`, `Get Profile.yaml`
+- Name files descriptively: `Create User.yml`, `Get Profile.yml`
 - Include comments explaining the API purpose
 - Use consistent variable naming
 
@@ -148,12 +148,12 @@ Build requests step by step:
 
 ### Poor Suggestions
 1. **Add Context**: Include more descriptive comments
-2. **Use Bruno Terminology**: Mention "Bruno", ".yaml", "environment variables"
+2. **Use Bruno Terminology**: Mention "Bruno", ".yml", "environment variables"
 3. **Reference Existing Files**: Keep similar requests open for context
 
 ### Missing Bruno Features
 1. **Update Instructions**: Ensure you have the latest instruction file
-2. **Provide Examples**: Include example `.yaml` files in your project
+2. **Provide Examples**: Include example `.yml` files in your project
 3. **Use Specific Names**: Name files with Bruno-specific patterns
 
 ## 🔄 Team Collaboration
@@ -193,7 +193,7 @@ git push
 
 ## 📝 Example Workflow
 
-1. **Create New .yaml File**: Start with a descriptive filename
+1. **Create New .yml File**: Start with a descriptive filename
 2. **Begin with Info**: Type `info:` and let Copilot suggest structure
 3. **Add Request Details**: Include method, URL, and headers
 4. **Include Authentication**: Add appropriate auth configuration
