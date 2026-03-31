@@ -10,28 +10,28 @@
   "customCommands": [
     {
       "name": "bruno-request",
-      "prompt": "Create a new Bruno .bru file for an API request. Use proper Bru syntax with meta block (name, type, seq), request method block, headers, body, and tests sections. Include environment variables using {{variableName}} syntax where appropriate. Add pre-request and post-response scripts if needed.",
-      "description": "Generate a Bruno API request file"
+      "prompt": "Create a new Bruno .yml request file using the OpenCollection YAML format. Use proper structure with info (name, type, seq), http (method, url, headers, body, auth), runtime (scripts with types before-request, after-response, tests), and settings sections. Include environment variables using {{variableName}} syntax where appropriate.",
+      "description": "Generate a Bruno API request file (YAML format)"
     },
     {
       "name": "bruno-environment",
-      "prompt": "Create a Bruno environment file (.bru) with variables and secrets. Use the vars block for regular variables (baseUrl, apiVersion, etc.) and vars:secret block for sensitive data (apiKey, authToken, etc.).",
+      "prompt": "Create a Bruno environment file (.yml) with variables. Use the variables array with name/value pairs. For sensitive data, add secret: true to the variable entry (e.g., { name: apiKey, value: '', secret: true }).",
       "description": "Generate a Bruno environment file"
     },
     {
       "name": "bruno-test",
-      "prompt": "Add comprehensive tests to a Bruno .bru file using Chai.js assertions. Include tests for: status code validation, response structure validation, data type checking, response time, and business logic validation. Use expect() assertions.",
+      "prompt": "Add comprehensive tests to a Bruno .yml request file using Chai.js assertions under runtime.scripts with type: tests. Include tests for: status code validation, response structure validation, data type checking, response time, and business logic validation. Use expect() assertions inside a code block.",
       "description": "Add tests to Bruno request"
     },
     {
       "name": "bruno-script",
-      "prompt": "Add pre-request or post-response scripts to a Bruno .bru file. Use bru.setVar() and bru.getVar() for runtime variables, bru.setEnvVar() for environment variables, and bru.setNextRequest() for request chaining. Include error handling.",
+      "prompt": "Add pre-request or post-response scripts to a Bruno .yml request file under runtime.scripts. Use type: before-request or type: after-response. Use bru.setVar() and bru.getVar() for runtime variables, bru.setEnvVar() for environment variables, and bru.setNextRequest() for request chaining. Include error handling.",
       "description": "Add scripts to Bruno request"
     },
     {
-      "name": "bruno-chain",
-      "prompt": "Create a request chain workflow in Bruno. Use post-response scripts to extract data (like tokens or IDs) and use bru.setNextRequest() to chain to the next request. Store extracted data in runtime variables.",
-      "description": "Create request chaining workflow"
+      "name": "bruno-collection",
+      "prompt": "Create a new Bruno collection with an opencollection.yml root file. The file must start with 'opencollection: 1.0.0' and include info.name. Optionally add config (proxy), request (collection-level variables/scripts), and docs sections. Do NOT add http: blocks — those belong in individual request .yml files.",
+      "description": "Create a Bruno OpenCollection root file"
     }
   ],
   "contextProviders": [
@@ -42,11 +42,11 @@
       }
     }
   ],
-  "systemMessage": "You are an expert in Bruno API Client. Bruno stores API collections in your filesystem using plain text .bru files - perfect for Git version control. Key concepts:\n\n- .bru file format for all API requests (never JSON)\n- Environment variables: {{variableName}}\n- JavaScript scripting: pre-request and post-response\n- Testing: Chai.js assertions in tests block\n- Dynamic variables: {{$randomEmail}}, {{$guid}}, etc.\n- Request chaining: bru.setNextRequest()\n- Cookie management: bru.cookies.jar()\n- Secret management: vars:secret blocks\n\nJavaScript API:\n- req: getUrl(), setUrl(), getMethod(), setMethod(), getHeader(), setHeader(), getBody(), setBody(), setTimeout()\n- res: status, body, headers, responseTime\n- bru: setVar(), getVar(), setEnvVar(), getEnvVar(), setNextRequest(), interpolate()\n\nWhen helping:\n1. Use .bru format for API definitions\n2. Store secrets in vars:secret blocks\n3. Use environment variables for changing values\n4. Write comprehensive tests\n5. Leverage dynamic variables for test data\n6. Chain requests for workflows\n7. Keep collections Git-friendly",
+  "systemMessage": "You are an expert in Bruno API Client. As of Bruno v3.1, the default format is YAML based on the OpenCollection specification (https://spec.opencollection.com/). Bruno stores API collections in your filesystem using .yml files — perfect for Git version control.\n\nKey concepts:\n- opencollection.yml root file (REQUIRED, must start with 'opencollection: 1.0.0')\n- .yml request files with info, http, runtime, settings sections\n- Environment variables: {{variableName}}\n- JavaScript scripting under runtime.scripts (types: before-request, after-response, tests)\n- Dynamic variables: {{$randomEmail}}, {{$guid}}, etc.\n- Request chaining: bru.setNextRequest()\n- Secret management: secret: true in environment variable entries\n\nJavaScript API:\n- req: getUrl(), setUrl(), getMethod(), setMethod(), getHeader(), setHeader(), getBody(), setBody(), setTimeout()\n- res: status, body, headers, responseTime\n- bru: setVar(), getVar(), setEnvVar(), getEnvVar(), setNextRequest(), interpolate()\n\nWhen helping:\n1. Use YAML .yml format for all API definitions (OpenCollection spec)\n2. Always include opencollection.yml with 'opencollection: 1.0.0' header\n3. Use info: (not meta:) for request metadata\n4. Use runtime.scripts with type: tests (not test) for testing\n5. Store secrets with secret: true in environment files\n6. Use environment variables for changing values\n7. Keep collections Git-friendly\n\nFor legacy Bru format, see config-bru.json.",
   "slashCommands": [
     {
       "name": "bruno",
-      "description": "Get help with Bruno API Client development"
+      "description": "Get help with Bruno API Client development (YAML/OpenCollection format)"
     }
   ]
 }
