@@ -1,7 +1,9 @@
-# Codeium Context for Bruno API Client
+# Codeium Context for Bruno API Client (YAML / OpenCollection Format)
 
 ## What is Bruno?
-Bruno is an innovative API client that stores API collections directly in your filesystem using a plain text markup language called "Bru". It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
+Bruno is an innovative API client that stores API collections directly in your filesystem. As of **Bruno v3.1**, the default format is **YAML** based on the [OpenCollection specification](https://spec.opencollection.com/). It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
+
+> **Note**: For legacy Bru format context, see `context-bru.md`.
 
 ## Key Features
 - **Multiple Protocols**: HTTP/REST, GraphQL, gRPC, WebSocket, SOAP
@@ -10,75 +12,118 @@ Bruno is an innovative API client that stores API collections directly in your f
 - **Environment Management**: Multiple environments with variable support
 - **Secret Management**: Secure handling of API keys and tokens
 - **CLI Support**: Run collections in CI/CD pipelines
+- **YAML Format**: Human-readable, Git-friendly YAML files (OpenCollection spec)
 
-## Key File Formats
+## Collection Directory Structure
+```
+My Collection/
+├── opencollection.yml             # Collection root file (REQUIRED)
+├── collection.yml                 # Collection-level settings (optional)
+├── environments/                  # Environment files directory
+│   ├── Local.yml
+│   └── Production.yml
+├── Get User.yml                   # Individual request files
+├── Create User.yml
+└── Users/                         # Subfolder for organization
+    ├── folder.yml
+    └── Get User by ID.yml
+```
 
-### .bru Files (API Requests)
-```bru
-meta {
+### opencollection.yml Format
+**ALWAYS include the `opencollection` version header** as the first line. Use the latest version from the [OpenCollection spec](https://spec.opencollection.com/) (currently `1.0.0`).
+
+**Minimal `opencollection.yml`**:
+```yaml
+opencollection: 1.0.0
+
+info:
+  name: Your Collection Name
+```
+
+**Full `opencollection.yml`** with optional collection-level fields:
+```yaml
+opencollection: 1.0.0
+
+info:
+  name: Bruno Example
+config:
+  proxy:
+    inherit: true
+request:
+  variables:
+    - name: tokenVar
+      value: tokenCollection
+      disabled: true
+  scripts:
+    - type: before-request
+      code: // console.log('Collection Level Script Logic')
+docs:
+  content: |-
+    ### Markdown Docs
+  type: text/markdown
+```
+
+**IMPORTANT**: `opencollection.yml` supports collection-level `info:`, `config:`, `request:` (variables/scripts), and `docs:`. **DO NOT** add request-specific keys like `http:` — those belong in individual request `.yml` files.
+
+## YAML Request File Structure
+
+### Key File Formats — Request Files (.yml)
+```yaml
+info:
   name: API Request Name
   type: http
   seq: 1
-}
 
-post {
-  url: {{baseUrl}}/api/endpoint
-  body: json
-  auth: bearer
-}
+http:
+  method: POST
+  url: "{{baseUrl}}/api/endpoint"
+  headers:
+    - name: content-type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "key": "value"
+      }
+  auth:
+    type: bearer
+    token: "{{authToken}}"
 
-headers {
-  content-type: application/json
-}
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setVar("timestamp", Date.now());
+    - type: after-response
+      code: |-
+        if (res.status === 200) {
+          bru.setVar("responseId", res.body.id);
+        }
+    - type: tests
+      code: |-
+        test("Request successful", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body).to.have.property("id");
+        });
 
-auth:bearer {
-  token: {{authToken}}
-}
-
-body:json {
-  {
-    "key": "value"
-  }
-}
-
-script:pre-request {
-  bru.setVar("timestamp", Date.now());
-}
-
-script:post-response {
-  if (res.status === 200) {
-    bru.setVar("responseId", res.body.id);
-  }
-}
-
-tests {
-  test("Request successful", function() {
-    expect(res.status).to.equal(200);
-    expect(res.body).to.have.property("id");
-  });
-}
+settings:
+  encodeUrl: true
 ```
 
 ### Environment Files
-```bru
-vars {
-  baseUrl: https://api.example.com
-  apiVersion: v1
-}
-
-vars:secret [
-  authToken,
-  apiKey
-]
-```
-
-### Collection Metadata (bruno.json)
-```json
-{
-  "version": "1",
-  "name": "API Collection",
-  "type": "collection"
-}
+```yaml
+variables:
+  - name: baseUrl
+    value: https://api.example.com
+  - name: apiVersion
+    value: v1
+  - name: apiKey
+    value: ""
+    secret: true
+  - name: authToken
+    value: ""
+    secret: true
 ```
 
 ## JavaScript API Reference
@@ -125,83 +170,89 @@ Generate random test data:
 ## Core Concepts
 
 ### Variable Management
-- **Environment variables**: `{{variableName}}` in .bru files
+- **Environment variables**: `{{variableName}}` in `.yml` files
 - **Runtime variables**: `bru.setVar("key", "value")` and `bru.getVar("key")`
-- **Secret variables**: Listed in `vars:secret` blocks
+- **Secret variables**: Use `secret: true` in environment files
 - **Dynamic variables**: `{{$randomEmail}}` etc. for test data
 
 ### Authentication Patterns
-```bru
+```yaml
 # Bearer Token
-auth:bearer {
-  token: {{token}}
-}
+auth:
+  type: bearer
+  token: "{{token}}"
 
 # Basic Auth
-auth:basic {
-  username: {{username}}
-  password: {{password}}
-}
+auth:
+  type: basic
+  username: "{{username}}"
+  password: "{{password}}"
 
 # API Key
-auth:apikey {
+auth:
+  type: apikey
   key: x-api-key
-  value: {{apiKey}}
-}
+  value: "{{apiKey}}"
+  placement: header
 ```
 
-### Request Body Types
-```bru
+### Body Types
+```yaml
 # JSON Body
-body:json {
-  {
-    "data": "value"
-  }
-}
+body:
+  type: json
+  data: |-
+    {
+      "data": "value"
+    }
 
-# Form Data
-body:form-urlencoded {
-  key1: value1
-  key2: value2
-}
+# Form URL Encoded
+body:
+  type: form-urlencoded
+  data:
+    - name: key1
+      value: value1
 
 # XML Body
-body:xml {
-  <?xml version="1.0"?>
-  <root>
-    <element>value</element>
-  </root>
-}
+body:
+  type: xml
+  data: |-
+    <?xml version="1.0"?>
+    <root>
+      <element>value</element>
+    </root>
 ```
 
 ### Testing with Chai.js
-```bru
-tests {
-  test("Status code is 200", function() {
-    expect(res.status).to.equal(200);
-  });
-  
-  test("Response has required fields", function() {
-    expect(res.body).to.have.property("id");
-    expect(res.body.id).to.be.a("number");
-  });
-  
-  test("Response time is acceptable", function() {
-    expect(res.responseTime).to.be.below(1000);
-  });
-}
+```yaml
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Status code is 200", function() {
+          expect(res.status).to.equal(200);
+        });
+
+        test("Response has required fields", function() {
+          expect(res.body).to.have.property("id");
+          expect(res.body.id).to.be.a("number");
+        });
+
+        test("Response time is acceptable", function() {
+          expect(res.responseTime).to.be.below(1000);
+        });
 ```
 
 ## File Organization
-- `bruno.json`: Collection metadata
-- `collection.bru`: Collection-level settings
-- `environments/`: Environment files (.bru)
-- Individual `.bru` files for each request
-- Folders can contain `folder.bru` for shared settings
+- `opencollection.yml`: Collection root file (REQUIRED — must include `opencollection` version header)
+- `collection.yml`: Collection-level settings
+- `environments/`: Environment files (`.yml`)
+- Individual `.yml` files for each request
+- Folders can contain `folder.yml` for shared settings
 
 ## Best Practices
-1. **Use .bru format** for all API definitions (never JSON)
-2. **Store secrets** in `vars:secret` blocks, not in version control
+1. **Use YAML format** for all API definitions (OpenCollection spec)
+2. **Store secrets** with `secret: true` in environment files, not in version control
 3. **Use environment variables** for values that change across environments
 4. **Write comprehensive tests** for status codes, structure, and data
 5. **Use meaningful names** for requests and folders
@@ -211,39 +262,12 @@ tests {
 9. **Add error handling** in pre-request scripts
 10. **Test across environments** using different environment files
 
-## Common Patterns
+## Common Mistakes
+- ❌ Missing `opencollection.yml` — every collection MUST have one
+- ❌ Using `meta:` instead of `info:` — use `info:` for request metadata
+- ❌ Putting `http:` blocks in `opencollection.yml` — request details go in separate `.yml` files
+- ❌ Using `test` instead of `tests` for script type
+- ❌ Putting tests at root level — they belong under `runtime: scripts:`
+- ❌ Using `.yaml` extension — Bruno uses `.yml`
 
-### Pre-Request Scripts
-```javascript
-// Generate test data
-const email = bru.interpolate('{{$randomEmail}}');
-bru.setVar("testEmail", email);
-
-// Validate required variables
-if (!bru.getEnvVar("apiKey")) {
-  throw new Error("API key is required");
-}
-```
-
-### Post-Response Scripts
-```javascript
-// Extract and store data
-if (res.status === 200) {
-  bru.setVar("userId", res.body.id);
-  bru.setVar("authToken", res.body.token);
-}
-
-// Chain to next request
-bru.setNextRequest("Get User Profile");
-```
-
-### Request Chaining
-```javascript
-// In login request post-response
-if (res.status === 200) {
-  bru.setVar("authToken", res.body.token);
-  bru.setNextRequest("Get User Profile");
-}
-```
-
-When working with Bruno, prioritize the plain text, Git-collaborative workflow and the unique .bru file format.
+When working with Bruno, prioritize the YAML file format (OpenCollection spec), proper directory structure, and Git-collaborative workflow.

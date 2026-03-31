@@ -1,163 +1,243 @@
-# Bruno API Client - Cursor AI Rules (YAML / OpenCollection Format)
+# Bruno API Client - Cursor AI Rules
 
 ## What is Bruno?
-Bruno is an innovative API client that stores API collections directly in your filesystem. As of **Bruno v3.1**, the default format is **YAML** based on the [OpenCollection specification](https://spec.opencollection.com/). It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
-
-> **Note**: For legacy Bru format rules, see `.cursorrules-bru`.
+Bruno is an innovative API client that stores API collections directly in your filesystem using a plain text markup language called "Bru". It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
 
 ## Core Philosophy
 - **Offline-First**: No cloud sync, everything stored locally
 - **Git-Collaborative**: Collections designed for version control
-- **YAML Format**: Human-readable `.yml` files (OpenCollection spec)
+- **Plain Text**: Human-readable .bru files for easy collaboration
 - **File-Based**: No databases, everything in the filesystem
 - **Developer-Friendly**: Works with your existing workflow
 
-## Collection Directory Structure
-```
-My Collection/
-├── opencollection.yml             # Collection root file (REQUIRED)
-├── collection.yml                 # Collection-level settings (optional)
-├── environments/                  # Environment files directory
-│   ├── Local.yml
-│   └── Production.yml
-├── Get User.yml                   # Individual request files
-├── Create User.yml
-└── Users/                         # Subfolder for organization
-    ├── folder.yml
-    └── Get User by ID.yml
-```
+## Bru File Format (.bru)
+Bruno uses a custom plain-text markup language for API requests:
 
-### opencollection.yml Format
-**ALWAYS include the `opencollection` version header** as the first line. Use the latest version from the [OpenCollection spec](https://spec.opencollection.com/) (currently `1.0.0`).
-
-**Minimal `opencollection.yml`**:
-```yaml
-opencollection: 1.0.0
-
-info:
-  name: Your Collection Name
-```
-
-**Full `opencollection.yml`** with optional collection-level fields:
-```yaml
-opencollection: 1.0.0
-
-info:
-  name: Bruno Example
-config:
-  proxy:
-    inherit: true
-request:
-  variables:
-    - name: tokenVar
-      value: tokenCollection
-      disabled: true
-  scripts:
-    - type: before-request
-      code: // console.log('Collection Level Script Logic')
-docs:
-  content: |-
-    ### Markdown Docs
-  type: text/markdown
-```
-
-**IMPORTANT**: `opencollection.yml` supports collection-level `info:`, `config:`, `request:` (variables/scripts), and `docs:`. **DO NOT** add request-specific keys like `http:` — those belong in individual request `.yml` files.
-
-## YAML Request File Format (.yml)
-```yaml
-info:
+```bru
+meta {
   name: API Request Name
   type: http
   seq: 1
+}
 
-http:
-  method: GET
-  url: "{{baseUrl}}/api/endpoint"
-  headers:
-    - name: content-type
-      value: application/json
-    - name: authorization
-      value: "Bearer {{token}}"
-  body:
-    type: json
-    data: |-
-      {
-        "key": "value"
-      }
-  auth:
-    type: bearer
-    token: "{{authToken}}"
+get {
+  url: {{baseUrl}}/api/endpoint
+  body: none
+  auth: none
+}
 
-runtime:
-  scripts:
-    - type: before-request
-      code: |-
-        bru.setVar("timestamp", Date.now());
-    - type: after-response
-      code: |-
-        bru.setVar("userId", res.body.id);
-    - type: tests
-      code: |-
-        test("Status is 200", function() {
-          expect(res.status).to.equal(200);
-        });
+headers {
+  content-type: application/json
+  authorization: Bearer {{token}}
+}
 
-settings:
-  encodeUrl: true
+body:json {
+  {
+    "key": "value"
+  }
+}
+
+script:pre-request {
+  // JavaScript code executed before request
+  bru.setVar("timestamp", Date.now());
+}
+
+script:post-response {
+  // JavaScript code executed after response
+  bru.setVar("userId", res.body.id);
+}
+
+tests {
+  test("Status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
+vars:pre-request {
+  apiKey: secret123
+}
+
+vars:post-response {
+  userId: {{res.body.id}}
+}
 ```
 
-## GraphQL Requests
-```yaml
-info:
+## GraphQL API Requests
+Bruno supports GraphQL queries and mutations. Here's the structure for GraphQL requests:
+
+```bru
+meta {
   name: GetPokemon
   type: graphql
   seq: 2
+}
 
-http:
-  method: POST
-  url: "https://graphql-api.example.com/graphql"
-  body:
-    type: graphql
-    data: |-
-      query GetPokemon($name: String!) {
-        pokemon(name: $name) {
-          id
+post {
+  url: https://graphql-api.example.com/graphql
+  body: graphql
+  auth: inherit
+}
+
+body:graphql {
+  query GetPokemon($name: String!) {
+    pokemon(name: $name) {
+      id
+      name
+      height
+      weight
+      types {
+        type {
           name
-          height
-          weight
         }
       }
-    variables: |-
-      {
-        "name": "pikachu"
-      }
-  auth:
-    type: inherit
+    }
+  }
+}
 
-settings:
+body:graphql:vars {
+  {
+    "name": "pikachu"
+  }
+}
+
+settings {
   encodeUrl: true
+}
+```
+
+### GraphQL Request Components:
+- `meta.type`: Set to `"graphql"` for GraphQL requests
+- `post.body`: Set to `"graphql"` to indicate GraphQL body type
+- `body:graphql`: Contains the GraphQL query or mutation
+  - Supports queries: `query QueryName($variable: Type!) { ... }`
+  - Supports mutations: `mutation MutationName($variable: Type!) { ... }`
+  - Supports fragments and complex nested queries
+- `body:graphql:vars`: JSON object containing GraphQL variables
+  - Variables are referenced in the query using `$variableName` syntax
+  - Variable types must match the GraphQL schema (String!, Int, Boolean, etc.)
+- `settings.encodeUrl`: Boolean to enable URL encoding (typically `true` for GraphQL endpoints)
+- `auth`: Can be `"inherit"` (from collection), `"none"`, or custom auth configuration
+
+### GraphQL Variable Examples:
+```bru
+body:graphql:vars {
+  {
+    "name": "pikachu",
+    "limit": 10,
+    "offset": 0,
+    "includeDetails": true
+  }
+}
+```
+
+### GraphQL with Environment Variables:
+```bru
+body:graphql {
+  query GetUser($id: ID!) {
+    user(id: $id) {
+      id
+      name
+      email
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "id": "{{userId}}"
+  }
+}
 ```
 
 ## File Structure
-- `opencollection.yml` - Collection root file (REQUIRED — must include `opencollection` version header)
-- `collection.yml` - Collection-level settings
-- `folder.yml` - Folder-level settings
-- `*.yml` - Request files
-- `environments/*.yml` - Environment files
+- `collection.bru` - Collection-level configuration
+- `bruno.json` - Collection metadata and settings
+- `environments/` - Environment files (.bru format)
+- Individual `.bru` files for each API request
+- Folders can contain `folder.bru` for folder-level settings
+
+## Bruno.json Schema
+The `bruno.json` file contains collection metadata and configuration. Here's the schema structure:
+
+```json
+{
+  "version": "1",
+  "name": "my-api-collection",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git",
+    "*.log"
+  ],
+  "scripts": {
+    "moduleWhitelist": [
+      "fs",
+      "path",
+      "crypto"
+    ],
+    "filesystemAccess": {
+      "allow": true
+    }
+  },
+  "size": 0.004620552062988281,
+  "filesCount": 23,
+  "proxy": {
+    "bypassProxy": "localhost,127.0.0.1",
+    "enabled": "global",
+    "auth": {
+      "enabled": false,
+      "username": "",
+      "password": ""
+    },
+    "port": 8080,
+    "hostname": "proxy.example.com",
+    "protocol": "http"
+  },
+  "clientCertificates": {
+    "enabled": true,
+    "certs": []
+  },
+  "protobuf": {
+    "protoFiles": []
+  }
+}
+```
+
+### Schema Fields:
+- `version`: Bruno collection format version (typically "1")
+- `name`: Collection name identifier
+- `type`: Always "collection" for API collections
+- `ignore`: Array of file patterns to ignore (similar to .gitignore)
+- `scripts.moduleWhitelist`: Node.js modules allowed in scripts (e.g., "fs", "path", "crypto")
+- `scripts.filesystemAccess.allow`: Boolean to enable filesystem access in scripts
+- `size`: Collection size in MB (calculated automatically)
+- `filesCount`: Total number of files in collection (calculated automatically)
+- `proxy`: Proxy configuration for requests
+  - `bypassProxy`: Comma-separated hosts to bypass proxy
+  - `enabled`: "global", "collection", or false
+  - `auth`: Proxy authentication settings
+  - `port`: Proxy port number
+  - `hostname`: Proxy server hostname
+  - `protocol`: "http" or "https"
+- `clientCertificates`: Client certificate configuration
+  - `enabled`: Boolean to enable client certificates
+  - `certs`: Array of certificate configurations
+- `protobuf`: Protocol Buffer configuration
+  - `protoFiles`: Array of .proto file paths
 
 ## Environment Files
-```yaml
-variables:
-  - name: baseUrl
-    value: https://api.example.com
-  - name: apiVersion
-    value: v1
-  - name: apiKey
-    value: ""
-    secret: true
-  - name: authToken
-    value: ""
-    secret: true
+```bru
+vars {
+  baseUrl: https://api.example.com
+  apiVersion: v1
+  timeout: 5000
+}
+
+vars:secret [
+  apiKey,
+  clientSecret,
+  authToken
+]
 ```
 
 ## JavaScript API Reference
@@ -237,22 +317,14 @@ jar.deleteCookie(url, "sessionId");
 ```
 
 ## Best Practices
-1. **Use YAML format** - Use `.yml` files for all API definitions (OpenCollection spec)
+1. **Use .bru format** - Always use .bru files, never JSON for API definitions
 2. **Environment variables** - Use `{{variableName}}` for values that change across environments
-3. **Secret management** - Use `secret: true` in environment files, not in version control
+3. **Secret management** - Store sensitive data in `vars:secret` blocks
 4. **Comprehensive tests** - Write tests for status codes, response structure, and data validation
 5. **Request chaining** - Use `bru.setNextRequest()` for complex workflows
 6. **Error handling** - Add validation in pre-request scripts
 7. **Git-friendly** - Organize collections logically for version control
 8. **Documentation** - Use meaningful names and add comments in scripts
-
-## Common Mistakes
-- ❌ Missing `opencollection.yml` — every collection MUST have one
-- ❌ Using `meta:` instead of `info:` — use `info:` for request metadata
-- ❌ Putting `http:` blocks in `opencollection.yml` — request details go in separate `.yml` files
-- ❌ Using `test` instead of `tests` for script type
-- ❌ Putting tests at root level — they belong under `runtime: scripts:`
-- ❌ Using `.yaml` extension — Bruno uses `.yml`
 
 ## Common Use Cases
 - API development and testing
@@ -281,17 +353,17 @@ your-api-project/
 │   └── workflows/
 │       └── api-tests.yml
 ├── bruno-api-collection/
-│   ├── opencollection.yml
-│   ├── collection.yml
+│   ├── bruno.json
+│   ├── collection.bru
 │   ├── environments/
-│   │   ├── development.yml
-│   │   ├── ci.yml
-│   │   └── production.yml
+│   │   ├── development.bru
+│   │   ├── ci.bru
+│   │   └── production.bru
 │   └── api/
 │       └── data/
-│           ├── Get All Data.yml
-│           ├── Create Data.yml
-│           └── Update Data by ID.yml
+│           ├── Get All Data.bru
+│           ├── Create Data.bru
+│           └── Update Data by ID.bru
 └── server.js
 ```
 
@@ -457,9 +529,10 @@ Store sensitive values as GitHub Secrets and reference them in your workflow:
 Then access them in your Bruno scripts using `bru.getProcessEnv()`:
 
 ```javascript
-// In a pre-request script (runtime.scripts type: before-request)
-const apiKey = bru.getProcessEnv("API_KEY");
-req.setHeader("Authorization", `Bearer ${apiKey}`);
+script:pre-request {
+  const apiKey = bru.getProcessEnv("API_KEY");
+  req.setHeader("Authorization", `Bearer ${apiKey}`);
+}
 ```
 
 ### Monitoring and Viewing Results
@@ -476,7 +549,7 @@ req.setHeader("Authorization", `Bearer ${apiKey}`);
 
 ### Best Practices for GitHub Actions Integration
 
-1. **Environment-specific configurations**: Create separate environment files for CI/CD (e.g., `ci.yml`, `staging.yml`, `production.yml`)
+1. **Environment-specific configurations**: Create separate environment files for CI/CD (e.g., `ci.bru`, `staging.bru`, `production.bru`)
 2. **Test isolation**: Ensure tests are independent and can run in any order
 3. **Error handling**: Use proper error handling in test scripts to avoid false positives
 4. **Secret management**: Use GitHub Secrets for sensitive data instead of hardcoding

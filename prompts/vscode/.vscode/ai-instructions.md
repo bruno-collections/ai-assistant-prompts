@@ -1,7 +1,9 @@
-# VS Code AI Instructions for Bruno API Client
+# VS Code AI Instructions for Bruno API Client (YAML / OpenCollection Format)
 
 ## What is Bruno?
-Bruno is an innovative API client that stores API collections directly in your filesystem using a plain text markup language (.bru files). It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
+Bruno is an innovative API client that stores API collections directly in your filesystem. As of **Bruno v3.1**, the default format is **YAML** based on the [OpenCollection specification](https://spec.opencollection.com/). It's designed as a Git-first, offline-only alternative to Postman, perfect for teams who want to version control their API tests alongside their code.
+
+> **Note**: For legacy Bru format instructions, see `ai-instructions-bru.md`.
 
 ## Core Features
 - **Multiple Protocols**: HTTP/REST, GraphQL, gRPC, WebSocket, SOAP
@@ -10,79 +12,113 @@ Bruno is an innovative API client that stores API collections directly in your f
 - **Environment Management**: Multiple environments with variable support
 - **Secret Management**: Secure handling of API keys and tokens
 - **CLI Support**: Run collections in CI/CD pipelines
-- **File-Based Storage**: Everything in plain text, perfect for Git
+- **YAML Format**: Human-readable, Git-friendly YAML files (OpenCollection spec)
 
-## Key File Types
+## Collection Directory Structure
+```
+My Collection/
+├── opencollection.yml             # Collection root file (REQUIRED)
+├── collection.yml                 # Collection-level settings (optional)
+├── environments/                  # Environment files directory
+│   ├── Local.yml
+│   └── Production.yml
+├── Get User.yml                   # Individual request files
+├── Create User.yml
+└── Users/                         # Subfolder for organization
+    ├── folder.yml
+    └── Get User by ID.yml
+```
 
-### .bru Files (API Requests)
-```bru
-meta {
+### opencollection.yml Format
+**ALWAYS include the `opencollection` version header** as the first line. Use the latest version from the [OpenCollection spec](https://spec.opencollection.com/) (currently `1.0.0`).
+
+**Minimal `opencollection.yml`**:
+```yaml
+opencollection: 1.0.0
+
+info:
+  name: Your Collection Name
+```
+
+**Full `opencollection.yml`** with optional collection-level fields:
+```yaml
+opencollection: 1.0.0
+
+info:
+  name: Bruno Example
+config:
+  proxy:
+    inherit: true
+request:
+  variables:
+    - name: tokenVar
+      value: tokenCollection
+      disabled: true
+  scripts:
+    - type: before-request
+      code: // console.log('Collection Level Script Logic')
+docs:
+  content: |-
+    ### Markdown Docs
+  type: text/markdown
+```
+
+**IMPORTANT**: `opencollection.yml` supports collection-level `info:`, `config:`, `request:` (variables/scripts), and `docs:`. **DO NOT** add request-specific keys like `http:` — those belong in individual request `.yml` files.
+
+### YAML Request Files (.yml)
+```yaml
+info:
   name: Get User Profile
   type: http
   seq: 1
-}
 
-get {
-  url: {{baseUrl}}/users/{{userId}}
-  body: none
-  auth: inherit
-}
+http:
+  method: GET
+  url: "{{baseUrl}}/users/{{userId}}"
+  headers:
+    - name: accept
+      value: application/json
+  body:
+    type: none
+  auth:
+    type: inherit
 
-headers {
-  accept: application/json
-  user-agent: Bruno/1.0
-}
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setVar("timestamp", Date.now());
+        bru.setVar("userId", "123");
+    - type: after-response
+      code: |-
+        if (res.status === 200) {
+          bru.setVar("userName", res.body.name);
+        }
+    - type: tests
+      code: |-
+        test("User profile retrieved successfully", function() {
+          expect(res.status).to.equal(200);
+          expect(res.body).to.have.property("name");
+          expect(res.body).to.have.property("email");
+        });
 
-script:pre-request {
-  // Set dynamic values
-  bru.setVar("timestamp", Date.now());
-  bru.setVar("userId", "123");
-}
-
-script:post-response {
-  // Extract response data
-  if (res.status === 200) {
-    bru.setVar("userName", res.body.name);
-  }
-}
-
-tests {
-  test("User profile retrieved successfully", function() {
-    expect(res.status).to.equal(200);
-    expect(res.body).to.have.property("name");
-    expect(res.body).to.have.property("email");
-  });
-}
+settings:
+  encodeUrl: true
 ```
 
 ### Environment Files
-```bru
-vars {
-  baseUrl: https://api.example.com
-  apiVersion: v1
-  timeout: 5000
-}
-
-vars:secret [
-  apiKey,
-  clientSecret,
-  refreshToken
-]
-```
-
-### Collection Configuration (bruno.json)
-```json
-{
-  "version": "1",
-  "name": "My API Collection",
-  "type": "collection",
-  "proxy": {
-    "enabled": false
-  },
-  "scripts": {
-    "moduleWhitelist": ["crypto", "buffer"]
-  }
-}
+```yaml
+variables:
+  - name: baseUrl
+    value: https://api.example.com
+  - name: apiVersion
+    value: v1
+  - name: apiKey
+    value: ""
+    secret: true
+  - name: clientSecret
+    value: ""
+    secret: true
 ```
 
 ## JavaScript API Reference
@@ -132,45 +168,54 @@ const email = bru.interpolate('{{$randomEmail}}');
 ```
 
 ### Authentication
-```bru
-auth:bearer {
-  token: {{authToken}}
-}
+```yaml
+# Bearer Token
+auth:
+  type: bearer
+  token: "{{authToken}}"
 
-auth:basic {
-  username: {{username}}
-  password: {{password}}
-}
+# Basic Auth
+auth:
+  type: basic
+  username: "{{username}}"
+  password: "{{password}}"
 
-auth:apikey {
+# API Key
+auth:
+  type: apikey
   key: x-api-key
-  value: {{apiKey}}
-}
+  value: "{{apiKey}}"
+  placement: header
 ```
 
 ### Request Body Types
-```bru
-# JSON
-body:json {
-  {
-    "name": "John Doe",
-    "email": "john@example.com"
-  }
-}
+```yaml
+# JSON Body
+body:
+  type: json
+  data: |-
+    {
+      "name": "John Doe",
+      "email": "john@example.com"
+    }
 
-# Form data
-body:form-urlencoded {
-  username: john
-  password: secret
-}
+# Form URL Encoded
+body:
+  type: form-urlencoded
+  data:
+    - name: username
+      value: john
+    - name: password
+      value: secret
 
-# XML
-body:xml {
-  <?xml version="1.0"?>
-  <user>
-    <name>John</name>
-  </user>
-}
+# XML Body
+body:
+  type: xml
+  data: |-
+    <?xml version="1.0"?>
+    <user>
+      <name>John</name>
+    </user>
 ```
 
 ### Pre-Request Scripts
@@ -204,35 +249,28 @@ if (res.body.needsVerification) {
 ```
 
 ### Testing Patterns
-```javascript
-test("Status code is 200", function() {
-  expect(res.status).to.equal(200);
-});
+```yaml
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Status code is 200", function() {
+          expect(res.status).to.equal(200);
+        });
 
-test("Response structure is correct", function() {
-  expect(res.body).to.be.an("object");
-  expect(res.body).to.have.property("data");
-});
+        test("Response structure is correct", function() {
+          expect(res.body).to.be.an("object");
+          expect(res.body).to.have.property("data");
+        });
 
-test("Response time is acceptable", function() {
-  expect(res.responseTime).to.be.below(2000);
-});
-
-test("Data validation", function() {
-  expect(res.body.user.email).to.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/);
-});
-```
-
-### Cookie Management
-```javascript
-const jar = bru.cookies.jar();
-jar.setCookie("https://api.example.com", "sessionId", "abc123");
-const cookie = await jar.getCookie("https://api.example.com", "sessionId");
+        test("Response time is acceptable", function() {
+          expect(res.responseTime).to.be.below(2000);
+        });
 ```
 
 ## Best Practices
-1. **Use .bru format** for all API definitions (never JSON)
-2. **Store secrets** in `vars:secret` blocks, not in version control
+1. **Use YAML format** for all API definitions (OpenCollection spec)
+2. **Store secrets** with `secret: true` in environment files, not in version control
 3. **Use environment variables** for values that change across environments
 4. **Write comprehensive tests** for status codes, structure, and data
 5. **Use meaningful names** for requests and folders
@@ -240,8 +278,16 @@ const cookie = await jar.getCookie("https://api.example.com", "sessionId");
 7. **Chain requests** using `bru.setNextRequest()` for workflows
 8. **Keep collections organized** for easy Git collaboration
 
+## Common Mistakes
+- ❌ Missing `opencollection.yml` — every collection MUST have one
+- ❌ Using `meta:` instead of `info:` — use `info:` for request metadata
+- ❌ Putting `http:` blocks in `opencollection.yml` — request details go in separate `.yml` files
+- ❌ Using `test` instead of `tests` for script type
+- ❌ Putting tests at root level — they belong under `runtime: scripts:`
+- ❌ Using `.yaml` extension — Bruno uses `.yml`
+
 ## Common Tasks
-- Creating API requests in .bru format
+- Creating API requests in YAML format
 - Setting up multiple environments (dev, staging, prod)
 - Writing pre-request scripts for dynamic data
 - Adding post-response scripts for data extraction
@@ -251,4 +297,4 @@ const cookie = await jar.getCookie("https://api.example.com", "sessionId");
 - Chaining requests for complex workflows
 - Converting from Postman/Insomnia
 
-When working with Bruno, prioritize the plain text, Git-collaborative approach and always consider the offline-first philosophy.
+When working with Bruno, prioritize the YAML file format (OpenCollection spec), proper directory structure, and Git-collaborative workflow.

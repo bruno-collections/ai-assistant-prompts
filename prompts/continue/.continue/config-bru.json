@@ -1,0 +1,52 @@
+{
+  "models": [
+    {
+      "title": "GPT-4",
+      "provider": "openai",
+      "model": "gpt-4",
+      "apiKey": "[API_KEY]"
+    }
+  ],
+  "customCommands": [
+    {
+      "name": "bruno-request",
+      "prompt": "Create a new Bruno .bru file for an API request. Use proper Bru syntax with meta block (name, type, seq), request method block, headers, body, and tests sections. Include environment variables using {{variableName}} syntax where appropriate. Add pre-request and post-response scripts if needed.",
+      "description": "Generate a Bruno API request file"
+    },
+    {
+      "name": "bruno-environment",
+      "prompt": "Create a Bruno environment file (.bru) with variables and secrets. Use the vars block for regular variables (baseUrl, apiVersion, etc.) and vars:secret block for sensitive data (apiKey, authToken, etc.).",
+      "description": "Generate a Bruno environment file"
+    },
+    {
+      "name": "bruno-test",
+      "prompt": "Add comprehensive tests to a Bruno .bru file using Chai.js assertions. Include tests for: status code validation, response structure validation, data type checking, response time, and business logic validation. Use expect() assertions.",
+      "description": "Add tests to Bruno request"
+    },
+    {
+      "name": "bruno-script",
+      "prompt": "Add pre-request or post-response scripts to a Bruno .bru file. Use bru.setVar() and bru.getVar() for runtime variables, bru.setEnvVar() for environment variables, and bru.setNextRequest() for request chaining. Include error handling.",
+      "description": "Add scripts to Bruno request"
+    },
+    {
+      "name": "bruno-chain",
+      "prompt": "Create a request chain workflow in Bruno. Use post-response scripts to extract data (like tokens or IDs) and use bru.setNextRequest() to chain to the next request. Store extracted data in runtime variables.",
+      "description": "Create request chaining workflow"
+    }
+  ],
+  "contextProviders": [
+    {
+      "name": "bruno-context",
+      "params": {
+        "path": "bruno-ai-context.md"
+      }
+    }
+  ],
+  "systemMessage": "You are an expert in Bruno API Client. Bruno stores API collections in your filesystem using plain text .bru files - perfect for Git version control. Key concepts:\n\n- .bru file format for all API requests (never JSON)\n- Environment variables: {{variableName}}\n- JavaScript scripting: pre-request and post-response\n- Testing: Chai.js assertions in tests block\n- Dynamic variables: {{$randomEmail}}, {{$guid}}, etc.\n- Request chaining: bru.setNextRequest()\n- Cookie management: bru.cookies.jar()\n- Secret management: vars:secret blocks\n\nJavaScript API:\n- req: getUrl(), setUrl(), getMethod(), setMethod(), getHeader(), setHeader(), getBody(), setBody(), setTimeout()\n- res: status, body, headers, responseTime\n- bru: setVar(), getVar(), setEnvVar(), getEnvVar(), setNextRequest(), interpolate()\n\nWhen helping:\n1. Use .bru format for API definitions\n2. Store secrets in vars:secret blocks\n3. Use environment variables for changing values\n4. Write comprehensive tests\n5. Leverage dynamic variables for test data\n6. Chain requests for workflows\n7. Keep collections Git-friendly",
+  "slashCommands": [
+    {
+      "name": "bruno",
+      "description": "Get help with Bruno API Client development"
+    }
+  ]
+}
