@@ -31,6 +31,7 @@ curl -fsSL https://raw.githubusercontent.com/bruno-collections/ai-assistant-prom
 | [Claude/ChatGPT](./docs/general.md) | `bruno-ai-context.md` | ❌ Manual | Copy & paste |
 | [Continue](./docs/continue.md) | `.continue/config.json` | ✅ Automatic | Minimal |
 | [Codeium](./docs/codeium.md) | `.codeium/context.md` | ✅ Automatic | No |
+| [Devin](./docs/devin.md) | `.agents/skills/bruno.md` | ✅ Automatic | No |
 
 ## 📁 Repository Structure
 
@@ -41,7 +42,8 @@ ai-assistant-prompts/
 │   ├── copilot/               # GitHub Copilot
 │   ├── vscode/                # VS Code AI extensions
 │   ├── general/               # Claude, ChatGPT, etc.
-│   └── continue/              # Continue extension
+│   ├── continue/              # Continue extension
+│   └── devin/                 # Devin (Local & Cloud)
 ├── examples/                   # Example Bruno projects with prompts
 │   ├── rest-api/              # REST API collection example
 │   ├── graphql/               # GraphQL collection example
@@ -161,6 +163,7 @@ We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guideline
 - [Continue Extension Setup](./docs/continue.md)
 - [Codeium Setup](./docs/codeium.md)
 - [General AI Assistants](./docs/general.md)
+- [Devin (Local & Cloud)](./docs/devin.md)
 - [Troubleshooting Guide](./docs/troubleshooting.md)
 
 ## 🌟 Community
