@@ -89,6 +89,15 @@ install_codeium() {
     print_success "Codeium prompts installed (.codeium/context.md)"
 }
 
+install_devin() {
+    print_info "Installing Devin prompts..."
+    mkdir -p .agents/skills
+    curl -fsSL "${REPO_URL}/prompts/devin/.agents/skills/bruno.md" -o .agents/skills/bruno.md
+    curl -fsSL "${REPO_URL}/prompts/devin/.agents/skills/bruno-bru.md" -o .agents/skills/bruno-bru.md
+    curl -fsSL "${REPO_URL}/prompts/devin/.agents/skills/bruno-cloud.md" -o .agents/skills/bruno-cloud.md
+    print_success "Devin prompts installed (.agents/skills/)"
+}
+
 # Interactive installation
 interactive_install() {
     echo
@@ -103,11 +112,12 @@ interactive_install() {
     echo "5) General AI assistants (Claude, ChatGPT, etc.)"
     echo "6) Continue extension only"
     echo "7) Codeium only"
-    echo "8) Custom selection"
-    echo "9) Exit"
+    echo "8) Devin only"
+    echo "9) Custom selection"
+    echo "10) Exit"
     echo
 
-    read -p "Enter your choice (1-9): " choice
+    read -p "Enter your choice (1-10): " choice
 
     case $choice in
         1)
@@ -119,6 +129,7 @@ interactive_install() {
             install_general
             install_continue
             install_codeium
+            install_devin
             ;;
         2)
             install_cursor
@@ -141,9 +152,12 @@ interactive_install() {
             install_codeium
             ;;
         8)
-            custom_selection
+            install_devin
             ;;
         9)
+            custom_selection
+            ;;
+        10)
             print_info "Installation cancelled"
             exit 0
             ;;
@@ -167,6 +181,7 @@ custom_selection() {
     read -p "Install general AI assistant context? (y/n): " general
     read -p "Install Continue extension prompts? (y/n): " continue
     read -p "Install Codeium prompts? (y/n): " codeium
+    read -p "Install Devin prompts? (y/n): " devin
     
     [[ $cursor == "y" ]] && install_cursor
     [[ $copilot == "y" ]] && install_copilot
@@ -174,6 +189,7 @@ custom_selection() {
     [[ $general == "y" ]] && install_general
     [[ $continue == "y" ]] && install_continue
     [[ $codeium == "y" ]] && install_codeium
+    [[ $devin == "y" ]] && install_devin
 }
 
 # Command line installation
@@ -187,6 +203,7 @@ cmd_install() {
             install_general
             install_continue
             install_codeium
+            install_devin
             ;;
         --cursor)
             install_cursor
@@ -208,8 +225,11 @@ cmd_install() {
         --codeium)
             install_codeium
             ;;
+        --devin)
+            install_devin
+            ;;
         *)
-            echo "Usage: $0 [--all|--cursor|--copilot|--vscode|--general|--continue|--codeium]"
+            echo "Usage: $0 [--all|--cursor|--copilot|--vscode|--general|--continue|--codeium|--devin]"
             echo "Run without arguments for interactive installation"
             exit 1
             ;;
